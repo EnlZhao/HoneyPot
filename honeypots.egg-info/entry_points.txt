@@ -1,3 +1,0 @@
-[console_scripts]
-honeypots = honeypots.__main__:main_logic
-
