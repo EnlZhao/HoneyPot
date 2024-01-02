@@ -73,6 +73,7 @@ qsshserver.kill_server()
 ```
 
 ## All output values
+
 ```sh
 'error'     :'Information about current error' 
 'server'    :'Server name'
@@ -89,6 +90,7 @@ qsshserver.kill_server()
 ```
 
 ## Current Servers/Emulators
+
 - QDNSServer
     - Server: DNS 
     - Port: 53/udp
@@ -100,28 +102,12 @@ qsshserver.kill_server()
     - Lib: Twisted.ftp
     - Logs: ip, port, username and password (default)
     - Options: Capture all threat actor commands and data (avalible)
-- QHTTPProxyServer
-    - Server: HTTP Proxy
-    - Port: 8080/tcp
-    - Lib: Twisted (low level emulation)
-    - Logs: ip, port and data
-    - Options: Capture all threat actor commands and data (avalible)
 - QHTTPServer
     - Server: HTTP
     - Port: 80/tcp
     - Lib: Twisted.http
     - Logs: ip, port, username and password
     - Options: Capture all threat actor commands and data (avalible)
-- QHTTPSServer
-    - Server: HTTPS
-    - Port: 443/tcp
-    - Lib: Twisted.https
-    - Logs: ip, port, username and password
-- QSOCKS5Server
-    - Server: SOCK5
-    - Port: 1080/tcp
-    - Lib: socketserver
-    - Logs: ip, port, username and password
 - QSSHServer
     - Server: SSH
     - Port: 22/tcp
@@ -133,17 +119,7 @@ qsshserver.kill_server()
     - Port: 23/tcp
     - Lib: Twisted
     - Logs: ip, port, username and password
-- QRDPServer
-    - Emulator: RDP
-    - Port: 3389/tcp
-    - Lib: Sockets
-    - Logs: ip, port, username and password
-    - Options: Capture all threat actor commands and data (avalible)
-- QDHCPServer
-    - Emulator: DHCP
-    - Port: 67/udp
-    - Lib: Sockets
-    - Logs: ip, port
+
 
 
 ## acknowledgment
