@@ -236,7 +236,9 @@ class QHTTPServer():
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     return self.home_file
 
+        print('Listening on port', self.port)
         reactor.listenTCP(self.port, Site(MainResource()))
+        print('reactor.run()')
         reactor.run()
 
     def run_server(self, process=False, auto=False):
