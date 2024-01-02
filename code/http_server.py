@@ -17,7 +17,6 @@ from contextlib import suppress
 
 disable_warnings()
 
-
 class QHTTPServer():
     def __init__(self, **kwargs):
         self.auto_disabled = None
@@ -26,14 +25,14 @@ class QHTTPServer():
         self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 'Apache/2.2.25', 'Microsoft-IIS/10.0', 'Apache/2.2.3', 'nginx/1.12.1', 'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])
         self.process = None
 
-        self.uuid = 'honeypotslogger' + '_' + __class__.__name__ + '_' + str(uuid4())[:8]
+        self.uuid = 'honeypot' + '_' + __class__.__name__ + '_' + str(uuid4())[:8]
 
         self.config = kwargs.get('config', '')
-        if self.config:
-            self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
-            set_local_vars(self, self.config)
-        else:
-            self.logs = setup_logger(__class__.__name__, self.uuid, None)
+        # if self.config:
+        #     self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
+        #     set_local_vars(self, self.config)
+        # else:
+        #     self.logs = setup_logger(__class__.__name__, self.uuid, None)
         
         self.logs = setup_logger(__class__.__name__, self.uuid, None)
 
@@ -256,8 +255,10 @@ class QHTTPServer():
             if run:
                 print('run')
                 self.process = Popen(['python3', path.realpath(__file__), '--custom', '--ip', str(self.ip), '--port', str(self.port), '--username', str(self.username), '--password', str(self.password), '--options', str(self.options), '--config', str(self.config), '--uuid', str(self.uuid)])
-                print('process', self.process)
+                print('self.process.poll()', self.process.poll())
+                print('self.uuid', self.uuid)
                 if self.process.poll() is None and check_if_server_is_running(self.uuid):
+                    print('check_if_server_is_running')
                     status = 'success'
 
             self.logs.info({'server': 'http_server', 'action': 'process', 'status': status, 'src_ip': self.ip, 'src_port': self.port, 'username': self.username, 'password': self.password, 'dest_ip': self.ip, 'dest_port': self.port})
