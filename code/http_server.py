@@ -27,7 +27,8 @@ class QHTTPServer():
 
         self.uuid = 'honeypot' + '_' + __class__.__name__ + '_' + str(uuid4())[:8]
 
-        self.config = kwargs.get('config', '')
+        # self.config = kwargs.get('config', '')
+
         # if self.config:
         #     self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
         #     set_local_vars(self, self.config)
@@ -36,7 +37,7 @@ class QHTTPServer():
         
         self.logs = setup_logger(__class__.__name__, self.uuid, None)
 
-        self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '0.0.0.0'
+        self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'
         self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80
         self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'
         self.password = kwargs.get('password', None) or (hasattr(self, 'password') and self.password) or 'honeypot'
@@ -54,13 +55,12 @@ class QHTTPServer():
             <!DOCTYPE html>
             <html>
             <head>
-            <title>Tricky Trap Page</title>
+            <title>Trap!</title>
             <style>
                 body {
                 font-family: Arial, sans-serif;
                 background-color: #f1f1f1;
                 text-align: center;
-                padding-top: 150px;
                 }
                 
                 .trap-container {
@@ -92,7 +92,7 @@ class QHTTPServer():
             </head>
             <body>
             <div class="trap-container">
-                <h2 class="trap-text">You Fell into the Trap!</h2>
+                <h1 class="trap-text">You Fell into the Trap!</h1>
                 <img src="https://www.freeimg.cn/i/2024/01/02/6593fb53a812f.png" alt="Tricky Trap" class="trap-image">
                 <p>HaHa! You have fallen into a HoneyPot!</p>
             </div>
@@ -115,7 +115,8 @@ class QHTTPServer():
                 
                 .login {
                 margin: 0 auto;
-                width: 300px;
+                width: 500px;
+                height: 300px;
                 background-color: white;
                 padding: 20px;
                 border-radius: 5px;
@@ -124,10 +125,10 @@ class QHTTPServer():
                 
                 .login input[type="text"],
                 .login input[type="password"] {
-                width: 100%;
+                width: 90%;
                 padding: 10px;
                 margin-bottom: 15px;
-                border: 1px solid #ccc;
+                border: 2px solid #ccc;
                 border-radius: 3px;
                 }
                 
@@ -148,7 +149,7 @@ class QHTTPServer():
             </head>
             <body>
             <div class="login">
-                <h2>login</h2>
+                <h1>ZJU Final-Lab</h1>
                 <form id='login' action='' method='post'>
                 <input type="text" name="username" placeholder="username" required><br>
                 <input type="password" name="password" placeholder="password" required><br>
@@ -284,11 +285,10 @@ class QHTTPServer():
 if __name__ == '__main__':
     parsed = server_arguments()
 
-    if parsed.docker or parsed.aws or parsed.custom:
-        print('ip', parsed.ip)
-        print('port', parsed.port)
-        print('username', parsed.username)
-        print('password', parsed.password)
+    if parsed.custom:
         qhttpserver = QHTTPServer(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
-        # qhttpserver.run_server(process=True, auto=True)
+        qhttpserver.run_server()
+        # qhttpserver.http_server_main()
+    else:
+        qhttpserver = QHTTPServer()
         qhttpserver.http_server_main()

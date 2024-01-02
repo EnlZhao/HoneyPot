@@ -1,87 +1,22 @@
-<p align="center"> <img src="https://raw.githubusercontent.com/qeeqbox/honeypots/main/readme/honeypots.png"></p>
-
-30 low-high level honeypots in a single PyPI package for monitoring network traffic, bots activities, and username \ password credentials. 
-
-## Why honeypots package is very powerful?
-The honeypots respond back, non-blocking, can be used as objects, or called directly with the in-built auto-configure scripts! Also, they are easy to set up and customize; it takes 1-2 seconds to spin a honeypot up. You can spin up multiple instances with the same type. For easy integration, the output can be logged to a Postgres database, file[s], terminal, or Syslog.
-
-This honeypots package is the only package that contains all the following: dhcp, dns, elastic, ftp, http proxy, https proxy, http, https, imap, ipp, irc, ldap, memcache, mssql, mysql, ntp, oracle, pjl, pop3, postgres, rdp, redis, sip, smb, smtp, snmp, socks5, ssh, telnet, vnc.
-
-Honeypots is in the awesome [telekom security T-Pot project!](https://github.com/telekom-security/tpotce)
 
 ## New
 - Add `capture_commands` to options for capturing more information about the threat source (Look at the table if it's supported or not)
 
-## Easy!
-<img src="https://raw.githubusercontent.com/qeeqbox/honeypots/main/readme/intro.gif" style="max-width:768px"/>
 
 ## Install
-```
-pip3 install honeypots
-```
 
 ```
-# or 
-sudo apt-get install postgresql
-sudo apt-get install python-psycopg2
-sudo apt-get install libpq-dev
-pip3 install honeypots
+pip3 install -r requirements.txt
 ```
 
-## honeypots -h
-```sh
-Qeeqbox/honeypots customizable honeypots for monitoring network traffic, bots activities, and username\password credentials
-
-Arguments:
-  --setup               target honeypot E.g. ssh or you can have multiple E.g ssh,http,https
-  --list                list all available honeypots
-  --kill                kill all honeypots
-  --verbose             Print error msgs
-
-Honeypots options:
-  --ip                  Override the IP
-  --port                Override the Port (Do not use on multiple!)
-  --username            Override the username
-  --password            Override the password
-  --config              Use a config file for honeypots settings
-  --options             Extra options (capture_commands for capturing all threat actor data)
-
-General options:
-  --termination-strategy {input,signal} Determines the strategy to terminate by
-  --test                Test a honeypot
-  --auto                Setup the honeypot with random port
-```
-
-## Usage Example - Auto configuration with default ports
-
-honeypot, or multiple honeypots separated by comma or word `all`
+## Usage Example 
 
 ```
-sudo -E python3 -m honeypots --setup ssh --options capture_commands
+python code/http_server.py
 ```
 
-## Usage Example - Auto configuration with random port (No need for higher privileges)
-
-honeypot, or multiple honeypots separated by comma or word `all`
-
 ```
-python3 -m honeypots --setup ssh --auto
-```
-
-## Usage Example - Auto configure with specific ports (You might need for higher privileges)
-
-Use as honeypot:port or multiple honeypots as honeypot:port,honeypot:port
-
-```
-sudo -E python3 -m honeypots --setup imap:143,mysql:3306,redis:6379
-```
-
-## Usage Example - Custom configure with logs location
-
-honeypot, or multiple honeypots in a dict
-
-```bash
-sudo -E python3 -m honeypots --setup ftp --config config.json
+python code/http_server.py --custom --username='ez' --password='123'
 ```
 
 #### config.json (Output to folder and terminal)
@@ -109,95 +44,6 @@ sudo -E python3 -m honeypots --setup ftp --config config.json
     }
   }
 }
-```
-
-#### config.json (Output to syslog)
-```json
-{
-  "logs": "syslog",
-  "logs_location": "",
-  "syslog_address": "udp://localhost:514",
-  "syslog_facility": 3,
-  "postgres": "",
-  "sqlite_file":"",
-  "db_options": [],
-  "sniffer_filter": "",
-  "sniffer_interface": "",
-  "honeypots": {
-    "ftp": {
-      "port": 21,
-      "ip": "0.0.0.0",
-      "username": "test",
-      "password": "test",
-      "options":["capture_commands"]
-    }
-  }
-}
-
-```
-
-#### config.json (Output to Postgres db)
-```json
-{
-    "logs": "db_postgres",
-    "logs_location": "",
-    "syslog_address":"",
-    "syslog_facility":0,
-    "postgres":"//username:password@172.19.0.2:9999/honeypots",
-    "sqlite_file":"",
-    "db_options":["drop"],
-    "sniffer_filter": "",
-    "sniffer_interface": "",
-    "honeypots": {
-        "ftp": {
-            "port": 21,
-            "username": "test",
-            "password": "test"
-        }
-    }
-}
-```
-
-#### config.json (Output to sqlite db)
-```json
-{
-    "logs": "db_postgres",
-    "logs_location": "",
-    "syslog_address":"",
-    "syslog_facility":0,
-    "postgres":"",
-    "sqlite_file":"/home/test.db",
-    "db_options":["drop"],
-    "sniffer_sniffer_filter": "",
-    "sniffer_interface": "",
-    "honeypots": {
-        "ftp": {
-            "port": 21,
-            "username": "test",
-            "password": "test",
-            "options":["capture_commands"]
-        }
-    }
-}
-```
-
-## db structure
-```json
-[
-  {
-    "id": 1,
-    "date": "2021-11-18 06:06:42.304338+00",
-    "data": {
-      "server": "ftp_server",
-      "action": "process",
-      "status": "success",
-      "ip": "0.0.0.0",
-      "port": "21",
-      "username": "test",
-      "password": "test"
-    }
-  }
-]
 ```
 
 ## Usage Example - Import as object and auto test
@@ -299,17 +145,15 @@ qsshserver.kill_server()
     - Lib: Sockets
     - Logs: ip, port
 
-## Open Shell
-[![Open in Cloud Shell](https://img.shields.io/static/v1?label=%3E_&message=Open%20in%20Cloud%20Shell&color=3267d6&style=flat-square)](https://ssh.cloud.google.com/cloudshell/editor?cloudshell_git_repo=https://github.com/qeeqbox/honeypots&tutorial=README.md) [![Open in repl.it Shell](https://img.shields.io/static/v1?label=%3E_&message=Open%20in%20repl.it%20Shell&color=606c74&style=flat-square)](https://repl.it/github/qeeqbox/honeypots)
 
 ## acknowledgment
+
+- This project is based on the work of [honeypots](https://github.com/qeeqbox/honeypots)
 - By using this framework, you are accepting the license terms of all these packages: `pipenv twisted psutil psycopg2-binary dnspython requests impacket paramiko redis mysql-connector pycryptodome vncdotool service_identity requests[socks] pygments http.server`
 - Let me know if I missed a reference or resource!
 
 ## Notes
+
 - Almost all servers and emulators are stripped-down - You can adjust that as needed
 
-## Other Projects
-
-[![](https://github.com/qeeqbox/.github/blob/main/data/social-analyzer.png)](https://github.com/qeeqbox/social-analyzer) [![](https://github.com/qeeqbox/.github/blob/main/data/analyzer.png)](https://github.com/qeeqbox/analyzer) [![](https://github.com/qeeqbox/.github/blob/main/data/chameleon.png)](https://github.com/qeeqbox/chameleon) [![](https://github.com/qeeqbox/.github/blob/main/data/osint.png)](https://github.com/qeeqbox/osint) [![](https://github.com/qeeqbox/.github/blob/main/data/url-sandbox.png)](https://github.com/qeeqbox/url-sandbox) [![](https://github.com/qeeqbox/.github/blob/main/data/mitre-visualizer.png)](https://github.com/qeeqbox/mitre-visualizer) [![](https://github.com/qeeqbox/.github/blob/main/data/woodpecker.png)](https://github.com/qeeqbox/woodpecker) [![](https://github.com/qeeqbox/.github/blob/main/data/docker-images.png)](https://github.com/qeeqbox/docker-images) [![](https://github.com/qeeqbox/.github/blob/main/data/seahorse.png)](https://github.com/qeeqbox/seahorse) [![](https://github.com/qeeqbox/.github/blob/main/data/rhino.png)](https://github.com/qeeqbox/rhino) [![](https://github.com/qeeqbox/.github/blob/main/data/raven.png)](https://github.com/qeeqbox/raven) [![](https://github.com/qeeqbox/.github/blob/main/data/image-analyzer.png)](https://github.com/qeeqbox/image-analyzer)
 
