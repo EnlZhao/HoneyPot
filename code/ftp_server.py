@@ -1,15 +1,3 @@
-'''
-//  -------------------------------------------------------------
-//  author        Giga
-//  project       qeeqbox/honeypots
-//  email         gigaqeeq@gmail.com
-//  description   app.py (CLI)
-//  licensee      AGPL-3.0
-//  -------------------------------------------------------------
-//  contributors list qeeqbox/honeypots/graphs/contributors
-//  -------------------------------------------------------------
-'''
-
 from warnings import filterwarnings
 filterwarnings(action='ignore', module='.*OpenSSL.*')
 
@@ -25,7 +13,7 @@ from twisted.python import log as tlog
 from random import choice
 from subprocess import Popen
 from os import path, getenv
-from honeypots.helper import close_port_wrapper, get_free_port, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
+from ..honeypots.helper import close_port_wrapper, get_free_port, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
 from uuid import uuid4
 from contextlib import suppress
 from tempfile import TemporaryDirectory
@@ -146,6 +134,7 @@ class QFTPServer():
         factory.protocol = CustomFTPProtocol
         factory.welcomeMessage = "ProFTPD 1.2.10"
         reactor.listenTCP(port=self.port, factory=factory)
+        # print('ftp_server_main')
         reactor.run()
 
     def run_server(self, process=False, auto=False):
@@ -203,7 +192,5 @@ class QFTPServer():
 if __name__ == '__main__':
     parsed = server_arguments()
     if parsed.docker or parsed.aws or parsed.custom:
-        # print('begin')
         ftpserver = QFTPServer(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
         ftpserver.run_server()
-        # ftpserver.run_server(process=True)
