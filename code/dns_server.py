@@ -76,6 +76,8 @@ class QDNSServer():
                     status = 'success'
 
             self.logs.info({'server': 'dns_server', 'action': 'process', 'status': status, 'src_ip': self.ip, 'src_port': self.port, 'dest_ip': self.ip, 'dest_port': self.port})
+            print(status)
+            print(self.ip, self.port)
 
             if status == 'success':
                 return True

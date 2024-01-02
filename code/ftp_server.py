@@ -151,9 +151,11 @@ class QFTPServer():
     def run_server(self, process=False, auto=False):
         status = 'error'
         run = False
+        # print('process', process, 'auto', auto, 'self.auto_disabled', self.auto_disabled, 'self.close_port()', self.close_port(), 'self.kill_server()', self.kill_server())
         if process:
             if auto and not self.auto_disabled:
                 port = get_free_port()
+                print('port', port)
                 if port > 0:
                     self.port = port
                     run = True
@@ -201,6 +203,7 @@ class QFTPServer():
 if __name__ == '__main__':
     parsed = server_arguments()
     if parsed.docker or parsed.aws or parsed.custom:
+        # print('begin')
         ftpserver = QFTPServer(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
-        # ftpserver.run_server()
-        ftpserver.run_server(process=True)
+        ftpserver.run_server()
+        # ftpserver.run_server(process=True)
