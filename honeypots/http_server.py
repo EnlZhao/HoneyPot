@@ -1,13 +1,11 @@
 # from warnings import filterwarnings
 # filterwarnings(action='ignore', module='.*OpenSSL.*')
-
 from cgi import FieldStorage
 from requests.packages.urllib3 import disable_warnings
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.python import log as tlog
-from twisted.web.http import Request
 from random import choice
 from utils import server_arguments, setup_logger, disable_logger, set_local_vars
 from uuid import uuid4
@@ -31,7 +29,8 @@ class HoneyHTTP():
             set_local_vars(self, self.config)
         else:
             self.logs = setup_logger(__class__.__name__, self.uuid, None)
-        
+
+        # 优先级: 命令行参数 > 配置文件 > 默认值
         self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'    
         self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80  
         self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'  
@@ -180,6 +179,7 @@ class HoneyHTTP():
                     value = ','.join(map(self.normalize, value))
                     # 将 item 和 value 添加到 headers 中
                     headers.update({self.normalize(item): value})
+
                 # 获取请求方法和请求 uri
                 headers.update({'method': self.normalize(request.method)})
                 headers.update({'uri': self.normalize(request.uri)})
@@ -197,17 +197,22 @@ class HoneyHTTP():
                 else:
                     client_ip = request.getClientAddress().host
 
+                # 记录更多信息
                 my_server.logs.info({'server': 'http', 'action': 'connection', 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port, 'data': headers})
 
+                # 伪装 server
                 if my_server.fake_server != '':
                     request.responseHeaders.removeHeader('Server')
                     request.responseHeaders.addRawHeader('Server', my_server.fake_server)
 
+                # 记录 GET 和 POST 请求
                 if request.method == b'GET' or request.method == b'POST':
                     my_server.logs.info({'server': 'http', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
+                # 处理 POST 请求
                 if request.method == b'POST':
                     self.headers = request.getAllHeaders()
+                    # 处理登录请求
                     if request.uri == b'/login.html' or b'/':
                         if my_server.username != '' and my_server.password != '':
                             form = FieldStorage(fp=request.content, headers=self.headers, environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers[b'content-type'], })

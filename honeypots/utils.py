@@ -41,7 +41,9 @@ def set_local_vars(self, config):
         print('Error: {}'.format(repr(e)))
 
 def parse_record(record, custom_filter, type_):
-    timestamp = {'timestamp': datetime.utcnow().isoformat()}
+    local_time = datetime.now()  # local time
+    local_time = local_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    timestamp = {'timestamp': local_time}
     try:
         if custom_filter is not None:
             if 'remove_errors' in custom_filter['honeypots']['options']:
