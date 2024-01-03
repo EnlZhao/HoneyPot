@@ -83,10 +83,10 @@ python3.8 <PID>    *    *   IPv4       *      0t0  TCP *:http (LISTEN)
 'status'    :'The return status of the action (success or fail)'
 'server_ip'   :'Server address'
 'server_port' :'Server port'
-'attack_ip'    :'Attacker address'
-'attack_port'  :'Attacker port'
-'username'  :'Attacker username'
-'password'  :'Attacker password'
+'attacker_ip'    :'Attacker address'
+'attacker_port'  :'Attacker port'
+'attack_username'  :'username entered by the attacker'
+'attack_password'  :'password entered by the attacker'
 ```
 
 ## acknowledgment
