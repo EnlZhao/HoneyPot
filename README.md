@@ -76,6 +76,21 @@ Python 3.8.18
 > python3 code/http_server.py --config='config.json'
 ```
 
+### Possible Error
+
+```
+Couldn't listen on any:80: [Errno 48] Address already in use.
+```
+
+- Solution: Change the port number or kill the process that is using the port
+
+```
+> lsof -i:80
+COMMAND     PID USER   FD   TYPE  DEVICE SIZE/OFF NODE NAME
+python3.8 <PID>    *    *   IPv4       *      0t0  TCP *:http (LISTEN)
+
+> kill -9 <PID>
+```
 
 ## All output values
 

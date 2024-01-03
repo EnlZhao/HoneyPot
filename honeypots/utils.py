@@ -141,21 +141,24 @@ def setup_logger(name, temp_name, config, drop=False):
             with open(config) as f:
                 config_data = load(f)
                 logs = config_data.get('logs', logs)
-                print('logs: {}'.format(logs))
                 logs_location = config_data.get('logs_location', logs_location)
-                print('logs_location: {}'.format(logs_location))
                 syslog_address = config_data.get('syslog_address', syslog_address)
-                print('syslog_address: {}'.format(syslog_address))
                 syslog_facility = config_data.get('syslog_facility', syslog_facility)
-                print('syslog_facility: {}'.format(syslog_facility))
                 custom_filter = config_data.get('custom_filter', custom_filter)
-                print('custom_filter: {}'.format(custom_filter))
+                # print('logs: {}'.format(logs))
+                # print('logs_location: {}'.format(logs_location))
+                # print('syslog_address: {}'.format(syslog_address))
+                # print('syslog_facility: {}'.format(syslog_facility))
+                # print('custom_filter: {}'.format(custom_filter))
         except Exception as e:
             print('Error: {}'.format(repr(e)))
+
     if logs_location == '' or logs_location is None:
         logs_location = path.join(gettempdir(), 'logs')
+
     if not path.exists(logs_location):
         makedirs(logs_location)
+
     file_handler = None
     ret_logs_obj = getLogger(temp_name)
     ret_logs_obj.setLevel(DEBUG)
@@ -165,31 +168,25 @@ def setup_logger(name, temp_name, config, drop=False):
     if 'file' in logs:
         max_bytes = 10000
         backup_count = 10
-        # with suppress(Exception):
         try:
             if config_data is not None:
                 if 'honeypots' in config_data:
                     temp_server_name = name[1:].lower().replace('server', '')
+                    print('temp_server_name: {}'.format(temp_server_name))
                     if temp_server_name in config_data['honeypots']:
                         if 'log_file_name' in config_data['honeypots'][temp_server_name]:
                             temp_name = config_data['honeypots'][temp_server_name]['log_file_name']
+
                         if 'max_bytes' in config_data['honeypots'][temp_server_name]:
                             max_bytes = config_data['honeypots'][temp_server_name]['max_bytes']
+
                         if 'backup_count' in config_data['honeypots'][temp_server_name]:
                             backup_count = config_data['honeypots'][temp_server_name]['backup_count']
         except Exception as e:
             print('Error: {}'.format(repr(e)))
         file_handler = CustomHandlerFileRotate(temp_name, logs, custom_filter, path.join(logs_location, temp_name), maxBytes=max_bytes, backupCount=backup_count)
         ret_logs_obj.addHandler(file_handler)
-    if 'syslog' in logs:
-        if syslog_address == '':
-            address = ('localhost', 514)
-        else:
-            address = (syslog_address.split('//')[1].split(':')[0], int(syslog_address.split('//')[1].split(':')[1]))
-        syslog = SysLogHandler(address=address, facility=syslog_facility)
-        formatter = Formatter('[%(name)s] [%(levelname)s] - %(message)s')
-        syslog.setFormatter(formatter)
-        ret_logs_obj.addHandler(syslog)
+
     return ret_logs_obj
 
 
