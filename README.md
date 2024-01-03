@@ -20,10 +20,10 @@ Python 3.8.18
 > python3 code/http_server.py
 ```
 
-### Custom username, password, ip and port
+### Custom username, password, ip or port
 
 ```
-> python3 code/http_server.py --custom --username='zju' --password='zju' --ip='0.0.0.0' --port='80'
+> python3 code/http_server.py --username='zju' --password='zju' --ip='0.0.0.0' --port='80'
 ```
 
 ### config.json (Output to file and terminal)
@@ -45,32 +45,6 @@ Python 3.8.18
     }
 }
 ```
-
-<!-- ```json
-{
-  "logs": "file,terminal,json",
-  "logs_location": "/var/log/honeypots/",
-  "syslog_address": "",
-  "syslog_facility": 0,
-  "postgres": "",
-  "sqlite_file":"",
-  "db_options": [],
-  "sniffer_filter": "",
-  "sniffer_interface": "",
-  "honeypots": {
-    "ftp": {
-      "port": 21,
-      "ip": "0.0.0.0",
-      "username": "ftp",
-      "password": "anonymous",
-      "log_file_name": "ftp.log",
-      "max_bytes": 10000,
-      "backup_count": 10,
-      "options":["capture_commands"]
-    }
-  }
-}
-``` -->
 
 ```
 > python3 code/http_server.py --config='config.json'

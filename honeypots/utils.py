@@ -1,15 +1,4 @@
-'''
-//  -------------------------------------------------------------
-//  author        Giga
-//  project       qeeqbox/honeypots
-//  email         gigaqeeq@gmail.com
-//  description   app.py (CLI)
-//  licensee      AGPL-3.0
-//  -------------------------------------------------------------
-//  contributors list qeeqbox/honeypots/graphs/contributors
-//  -------------------------------------------------------------
-'''
-
+from logging.handlers import RotatingFileHandler
 import sys
 
 from warnings import filterwarnings
@@ -20,49 +9,33 @@ from signal import SIGTERM
 from argparse import ArgumentParser
 from socket import socket, AF_INET, SOCK_STREAM
 from json import JSONEncoder, dumps, load
-from logging import Handler, Formatter, DEBUG, getLogger, addLevelName, INFO, Logger
+from logging import Handler, DEBUG, getLogger
 from sys import stdout
 from datetime import datetime
-from logging.handlers import RotatingFileHandler, SysLogHandler
 from tempfile import _get_candidate_names, gettempdir
 from os import makedirs, path, scandir, devnull, getuid
-from psycopg2 import sql
-from psycopg2 import connect as psycopg2_connect
-from time import sleep
-from traceback import format_exc
 from collections.abc import Mapping
-from urllib.parse import urlparse
-from sqlite3 import connect as sqlite3_connect
-from pathlib import Path
 from contextlib import suppress
 
 old_stderr = sys.stderr
 sys.stderr = open(devnull, 'w')
 
-
-def check_privileges():
-    with suppress(Exception):
-        return getuid() == 0
-    with suppress(Exception):
-        import ctypes
-        return ctypes.windll.shell32.IsUserAnAdmin() != 0
-    return False
-
-
 def set_local_vars(self, config):
-    with suppress(Exception):
+    try:
         honeypot = None
         if config and config != '':
             with open(config) as f:
                 config_data = load(f)
                 honeypots = config_data['honeypots']
-                honeypot = self.__class__.__name__[1:-6].lower()
+                honeypot = self.__class__.__name__[5:].lower()
             if honeypot and honeypot in honeypots:
                 for var in honeypots[honeypot]:
                     setattr(self, var, honeypots[honeypot][var])
+                    print(f'var: {var} - {honeypots[honeypot][var]}')
                     if var == 'port':
                         setattr(self, 'auto_disabled', True)
-
+    except Exception as e:
+        print('Error: {}'.format(repr(e)))
 
 def parse_record(record, custom_filter, type_):
     timestamp = {'timestamp': datetime.utcnow().isoformat()}
@@ -110,7 +83,6 @@ def parse_record(record, custom_filter, type_):
             record.msg = dumps(record.msg, sort_keys=True, cls=ComplexEncoder)
     return record
 
-
 def get_running_servers():
     temp_list = []
     with suppress(Exception):
@@ -122,12 +94,10 @@ def get_running_servers():
                     temp_list.append(cmdline.split(' --custom ')[1])
     return temp_list
 
-
 def disable_logger(logger_type, object):
     if logger_type == 1:
         temp_name = path.join(gettempdir(), next(_get_candidate_names()))
         object.startLogging(open(temp_name, 'w'), setStdout=False)
-
 
 def setup_logger(name, temp_name, config, drop=False):
     logs = 'terminal'
@@ -165,13 +135,14 @@ def setup_logger(name, temp_name, config, drop=False):
 
     if 'terminal' in logs:
         ret_logs_obj.addHandler(CustomHandler(temp_name, logs, custom_filter))
+
     if 'file' in logs:
         max_bytes = 10000
         backup_count = 10
         try:
             if config_data is not None:
                 if 'honeypots' in config_data:
-                    temp_server_name = name[1:].lower().replace('server', '')
+                    temp_server_name = name[5:].lower()
                     print('temp_server_name: {}'.format(temp_server_name))
                     if temp_server_name in config_data['honeypots']:
                         if 'log_file_name' in config_data['honeypots'][temp_server_name]:
@@ -189,12 +160,10 @@ def setup_logger(name, temp_name, config, drop=False):
 
     return ret_logs_obj
 
-
 def clean_all():
     for entry in scandir('.'):
         if entry.is_file() and entry.name.endswith('_server.py'):
             kill_servers(entry.name)
-
 
 def kill_servers(name):
     with suppress(Exception):
@@ -204,7 +173,6 @@ def kill_servers(name):
                 process.send_signal(SIGTERM)
                 process.kill()
 
-
 def check_if_server_is_running(uuid):
     with suppress(Exception):
         for process in process_iter():
@@ -212,7 +180,6 @@ def check_if_server_is_running(uuid):
             if '--custom' in cmdline and uuid in cmdline:
                 return True
     return False
-
 
 def kill_server_wrapper(server_name, name, process):
     with suppress(Exception):
@@ -293,36 +260,14 @@ class CustomHandlerFileRotate(RotatingFileHandler):
 
 class CustomHandler(Handler):
     def __init__(self, uuid='', logs='', custom_filter=None, config=None, drop=False):
-        self.db = {'db_postgres': None, 'db_sqlite': None}
         self.logs = logs
         self.uuid = uuid
         self.custom_filter = custom_filter
-        if config and config != '' and 'db_postgres' in self.logs:
-            parsed = urlparse(config['postgres'])
-            self.db['db_postgres'] = postgres_class(host=parsed.hostname, port=parsed.port, username=parsed.username, password=parsed.password, db=parsed.path[1:], uuid=self.uuid, drop=drop)
-        if config and config != '' and 'db_sqlite' in self.logs:
-            self.db['db_sqlite'] = sqlite_class(file=config["sqlite_file"], drop=drop, uuid=self.uuid)
         Handler.__init__(self)
 
     def emit(self, record):
         try:
-            if 'db_postgres' in self.logs:
-                if self.db['db_postgres']:
-                    if isinstance(record.msg, list):
-                        if record.msg[0] == 'sniffer' or record.msg[0] == 'errors':
-                            self.db['db_postgres'].insert_into_data_safe(record.msg[0], dumps(serialize_object(record.msg[1]), cls=ComplexEncoder))
-                    elif isinstance(record.msg, Mapping):
-                        if 'server' in record.msg:
-                            self.db['db_postgres'].insert_into_data_safe('servers', dumps(serialize_object(record.msg), cls=ComplexEncoder))
-            if 'db_sqlite' in self.logs:
-                _record = parse_record(record, self.custom_filter, 'db_sqlite')
-                if _record:
-                    self.db['db_sqlite'].insert_into_data_safe(_record.msg)
             if 'terminal' in self.logs:
-                _record = parse_record(record, self.custom_filter, 'terminal')
-                if _record:
-                    stdout.write(_record.msg + '\n')
-            if 'syslog' in self.logs:
                 _record = parse_record(record, self.custom_filter, 'terminal')
                 if _record:
                     stdout.write(_record.msg + '\n')
@@ -333,147 +278,6 @@ class CustomHandler(Handler):
                         return None
             stdout.write(dumps({'error': repr(e), 'logger': repr(record)}, sort_keys=True, cls=ComplexEncoder) + '\n')
         stdout.flush()
-
-
-class postgres_class():
-    def __init__(self, host=None, port=None, username=None, password=None, db=None, drop=False, uuid=None):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.db = db
-        self.uuid = uuid
-        self.mapped_tables = ['errors', 'servers', 'sniffer', 'system']
-        self.wait_until_up()
-        if drop:
-            self.con = psycopg2_connect(host=self.host, port=self.port, user=self.username, password=self.password)
-            self.con.set_isolation_level(0)
-            self.cur = self.con.cursor()
-            self.drop_db()
-            self.drop_tables()
-            self.create_db()
-            self.con.close()
-        else:
-            self.con = psycopg2_connect(host=self.host, port=self.port, user=self.username, password=self.password)
-            self.con.set_isolation_level(0)
-            self.cur = self.con.cursor()
-            if not self.check_db_if_exists():
-                self.create_db()
-            self.con.close()
-        self.con = psycopg2_connect(host=self.host, port=self.port, user=self.username, password=self.password, database=self.db)
-        self.con.set_isolation_level(0)
-        self.con.set_client_encoding('UTF8')
-        self.cur = self.con.cursor()
-        self.create_tables()
-
-    def wait_until_up(self):
-        test = True
-        while test:
-            with suppress(Exception):
-                print('{} - Waiting on postgres connection'.format(self.uuid))
-                stdout.flush()
-                conn = psycopg2_connect(host=self.host, port=self.port, user=self.username, password=self.password, connect_timeout=1)
-                conn.close()
-                test = False
-            sleep(1)
-        print('{} - postgres connection is good'.format(self.uuid))
-
-    def addattr(self, x, val):
-        self.__dict__[x] = val
-
-    def check_db_if_exists(self):
-        exists = False
-        with suppress(Exception):
-            self.cur.execute('SELECT exists(SELECT 1 from pg_catalog.pg_database where datname = %s)', (self.db,))
-            if self.cur.fetchone()[0]:
-                exists = True
-        return exists
-
-    def drop_db(self):
-        with suppress(Exception):
-            print('[x] Dropping {} db'.format(self.db))
-            if self.check_db_if_exists():
-                self.cur.execute(sql.SQL('drop DATABASE IF EXISTS {}').format(sql.Identifier(self.db)))
-                sleep(2)
-            self.cur.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(self.db)))
-
-    def create_db(self):
-        print("create")
-        self.cur.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(self.db)))
-
-    def drop_tables(self,):
-        for x in self.mapped_tables:
-            self.cur.execute(sql.SQL('drop TABLE IF EXISTS {}').format(sql.Identifier(x + '_table')))
-
-    def create_tables(self):
-        for x in self.mapped_tables:
-            self.cur.execute(sql.SQL('CREATE TABLE IF NOT EXISTS {} (id SERIAL NOT NULL,date timestamp with time zone DEFAULT now(),data json)').format(sql.Identifier(x + '_table')))
-
-    def insert_into_data_safe(self, table, obj):
-        with suppress(Exception):
-            self.cur.execute(sql.SQL('INSERT INTO {} (id,date, data) VALUES (DEFAULT ,now(), %s)').format(sql.Identifier(table + '_table')), [obj])
-
-
-class sqlite_class():
-    def __init__(self, file=None, drop=False, uuid=None):
-        self.file = file
-        self.uuid = uuid
-        self.mapped_tables = ['servers']
-        self.servers_table_template = {'server': 'servers_table', 'action': None, 'status': None, 'src_ip': None, 'src_port': None, 'username': None, 'password': None, 'dest_ip': None, 'dest_port': None, 'data': None, 'error': None}
-        self.wait_until_up()
-        if drop:
-            self.con = sqlite3_connect(self.file, timeout=1, isolation_level=None, check_same_thread=False)
-            self.cur = self.con.cursor()
-            self.drop_db()
-            self.drop_tables()
-            self.con.close()
-        self.con = sqlite3_connect(self.file, timeout=1, isolation_level=None, check_same_thread=False)
-        self.cur = self.con.cursor()
-        self.create_tables()
-
-    def wait_until_up(self):
-        test = True
-        while test:
-            with suppress(Exception):
-                print('{} - Waiting on sqlite connection'.format(self.uuid))
-                conn = sqlite3_connect(self.file, timeout=1, check_same_thread=False)
-                conn.close()
-                test = False
-            sleep(1)
-        print('{} - sqlite connection is good'.format(self.uuid))
-
-    def drop_db_test(self):
-        with suppress(Exception):
-            file_exists = False
-            sql_file = False
-            with open(self.file, 'rb') as f:
-                file_exists = True
-                header = f.read(100)
-                if header[:16] == b'SQLite format 3\x00':
-                    sql_file = True
-            if sql_file:
-                print("yes")
-
-    def drop_db(self):
-        with suppress(Exception):
-            file = Path(self.file)
-            file.unlink(missing_ok=False)
-
-    def drop_tables(self,):
-        with suppress(Exception):
-            for x in self.mapped_tables:
-                self.cur.execute("DROP TABLE IF EXISTS '{:s}'".format(x))
-
-    def create_tables(self):
-        with suppress(Exception):
-            self.cur.execute("CREATE TABLE IF NOT EXISTS '{:s}' (id INTEGER PRIMARY KEY,date DATETIME DEFAULT CURRENT_TIMESTAMP,server text, action text, status text, src_ip text, src_port text,dest_ip text, dest_port text, username text, password text, data text, error text)".format('servers_table'))
-
-    def insert_into_data_safe(self, obj):
-        with suppress(Exception):
-            parsed = {k: v for k, v in obj.items() if v is not None}
-            dict_ = {**self.servers_table_template, **parsed}
-            self.cur.execute("INSERT INTO servers_table (server, action, status, src_ip, src_port, dest_ip, dest_port, username, password, data, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (dict_['server'], dict_['action'], dict_['status'], dict_['src_ip'], dict_['src_port'], dict_['dest_ip'], dict_['dest_port'], dict_['username'], dict_['password'], dict_['data'], dict_['error']))
-
 
 def server_arguments():
     _server_parser = ArgumentParser(prog='Server')

@@ -7,7 +7,7 @@
             "ip": "127.0.0.1",
             "username": "ez",
             "password": "ez",
-            "log_file_name": "http.log",
+            "log_file_name": "httplog.json",
             "max_bytes": 10000,
             "backup_count": 10
         }

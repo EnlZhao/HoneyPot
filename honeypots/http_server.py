@@ -17,7 +17,7 @@ from contextlib import suppress
 
 disable_warnings()
 
-class HPhttp():
+class HoneyHTTP():
     def __init__(self, **kwargs):
         self.auto_disabled = None # if True, 自动获取端口失败
         self.key = path.join(gettempdir(), next(_get_candidate_names()))    # 生成一个随机的 key
@@ -43,21 +43,15 @@ class HPhttp():
         # self.logs = setup_logger(__class__.__name__, self.uuid, None)   # 设置日志
 
         self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'    
-        print('self.ip', self.ip)
         self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80  
-        print('self.port', self.port)
         self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'  
-        print('self.username', self.username)
         self.password = kwargs.get('password', None) or (hasattr(self, 'password') and self.password) or 'honeypot'  
-        print('self.password', self.password)
 
-        self.options = kwargs.get('options', '') or (hasattr(self, 'options') and self.options) or getenv('HONEYPOTS_OPTIONS', '') or ''    # default options
+        print(f'ip: {self.ip}; port: {self.port}; username: {self.username}; password: {self.password}')
         
-        print('self.options', self.options)
-
         disable_logger(1, tlog)     # 禁用 twisted 的日志
 
-    def http_server_main(self):
+    def http_server(self):
         _q_s = self 
 
         class MainResource(Resource):
@@ -205,26 +199,22 @@ class HPhttp():
                 except Exception as e:
                     print(e)
 
-                if 'fix_get_client_ip' in _q_s.options:
-                    try:
-                        raw_headers = dict(request.requestHeaders.getAllRawHeaders())
-                        if b'X-Forwarded-For' in raw_headers:
-                            client_ip = check_bytes(raw_headers[b'X-Forwarded-For'][0])
-                        elif b'X-Real-IP' in raw_headers:
-                            client_ip = check_bytes(raw_headers[b'X-Real-IP'][0])
-                    except Exception as e:
-                        print(e)
+                try:
+                    raw_headers = dict(request.requestHeaders.getAllRawHeaders())
+                    if b'X-Forwarded-For' in raw_headers:
+                        client_ip = check_bytes(raw_headers[b'X-Forwarded-For'][0])
+                    elif b'X-Real-IP' in raw_headers:
+                        client_ip = check_bytes(raw_headers[b'X-Real-IP'][0])
+                except Exception as e:
+                    print(e)
 
                 if client_ip == "":
                     client_ip = request.getClientAddress().host
 
-                # try:
-                    # if "capture_commands" in _q_s.options:
-                _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port, 'data': headers})
-                    # else:
-                        # _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
-                # except Exception as e:
-                    # print(e)
+                try:
+                    _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port, 'data': headers})
+                except Exception as e:
+                    print(e)
 
                 if _q_s.mocking_server != '':
                     request.responseHeaders.removeHeader('Server')
@@ -272,38 +262,6 @@ class HPhttp():
         except Exception as e:
             print(e)
 
-    def run_server(self, process=False, auto=False):
-        status = 'error'
-        run = False
-        if process:
-            if auto and not self.auto_disabled:
-                port = get_free_port()
-                print('port', port)
-                if port > 0:
-                    self.port = port
-                    run = True
-            elif self.close_port() and self.kill_server():
-                run = True
-
-            if run:
-                print('run')
-                self.process = Popen(['python3', path.realpath(__file__), '--custom', '--ip', str(self.ip), '--port', str(self.port), '--username', str(self.username), '--password', str(self.password), '--options', str(self.options), '--config', str(self.config), '--uuid', str(self.uuid)])
-                print('self.process.poll()', self.process.poll())
-                print('self.uuid', self.uuid)
-                if self.process.poll() is None and check_if_server_is_running(self.uuid):
-                    print('check_if_server_is_running')
-                    status = 'success'
-
-            self.logs.info({'server': 'http_server', 'action': 'process', 'status': status, 'src_ip': self.ip, 'src_port': self.port, 'username': self.username, 'password': self.password, 'dest_ip': self.ip, 'dest_port': self.port})
-
-            if status == 'success':
-                return True
-            else:
-                self.kill_server()
-                return False
-        else:
-            self.http_server_main()
-
     def close_port(self):
         ret = close_port_wrapper('http_server', self.ip, self.port, self.logs)
         return ret
@@ -315,14 +273,7 @@ class HPhttp():
 if __name__ == '__main__':
     parsed = server_arguments()
 
-    if parsed.custom:
-        http_server = HPhttp(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
-        http_server.run_server()
-        # http_server.close_port()
-        # http_server.kill_server()
-        # http_server.http_server_main()
-    else:
-        http_server = HPhttp()
-        http_server.http_server_main()
-        # http_server.close_port()
-        # http_server.kill_server()
+    http_server = HoneyHTTP(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
+    http_server.http_server()
+    http_server.close_port()
+    http_server.kill_server()
