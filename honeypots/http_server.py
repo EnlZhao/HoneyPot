@@ -26,12 +26,9 @@ class HoneyHTTP():
         self.uuid = __class__.__name__ + '_' + str(uuid4())[:8]  # 生成一个 uuid
 
         self.config = kwargs.get('config', '')
-        print(f'config: {self.config}')
 
         if self.config:
-            print(f'setup_logger: {__class__.__name__}, {self.uuid}, {self.config}')
             self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
-            print(f'logs: {self.logs}')
             set_local_vars(self, self.config)
         else:
             self.logs = setup_logger(__class__.__name__, self.uuid, None)
@@ -159,7 +156,7 @@ class HoneyHTTP():
             </body>
             </html>'''
 
-            def check_bytes(self, string):  # 检查是否是 bytes 类型
+            def normalize(self, string):  # 检查是否是 bytes 类型
                 if isinstance(string, bytes):
                     return string.decode()
                 else:
@@ -178,7 +175,7 @@ class HoneyHTTP():
                 headers = {}
                 client_ip = ""
 
-                def check_bytes(string):
+                def normalize(string):
                     if isinstance(string, bytes):
                         return string.decode()
                     else:
@@ -187,9 +184,9 @@ class HoneyHTTP():
                 # 获取请求头
                 try:
                     for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
-                        headers.update({check_bytes(item): ','.join(map(check_bytes, value))})
-                    headers.update({'method': check_bytes(request.method)})
-                    headers.update({'uri': check_bytes(request.uri)})
+                        headers.update({normalize(item): ','.join(map(normalize, value))})
+                    headers.update({'method': normalize(request.method)})
+                    headers.update({'uri': normalize(request.uri)})
                 except Exception as e:
                     print(e)
 
@@ -197,9 +194,9 @@ class HoneyHTTP():
                 try:
                     raw_headers = dict(request.requestHeaders.getAllRawHeaders())
                     if b'X-Forwarded-For' in raw_headers:
-                        client_ip = check_bytes(raw_headers[b'X-Forwarded-For'][0])
+                        client_ip = normalize(raw_headers[b'X-Forwarded-For'][0])
                     elif b'X-Real-IP' in raw_headers:
-                        client_ip = check_bytes(raw_headers[b'X-Real-IP'][0])
+                        client_ip = normalize(raw_headers[b'X-Real-IP'][0])
                 except Exception as e:
                     print(e)
 
@@ -233,8 +230,8 @@ class HoneyHTTP():
                         if _q_s.username != '' and _q_s.password != '':
                             form = FieldStorage(fp=request.content, headers=self.headers, environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers[b'content-type'], })
                             if 'username' in form and 'password' in form:
-                                username = self.check_bytes(form['username'].value)
-                                password = self.check_bytes(form['password'].value)
+                                username = self.normalize(form['username'].value)
+                                password = self.normalize(form['password'].value)
                                 status = 'failed'
                                 if username == _q_s.username and password == _q_s.password:
                                     username = _q_s.username
@@ -252,6 +249,7 @@ class HoneyHTTP():
 
         try:
             reactor.listenTCP(self.port, Site(MainResource()))
+            print(f'[*] HTTP server started on port {self.port}')
             reactor.run()
         except Exception as e:
             print(e)

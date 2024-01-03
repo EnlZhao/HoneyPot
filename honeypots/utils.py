@@ -34,7 +34,7 @@ def set_local_vars(self, config):
             if honeypot and honeypot in honeypots:
                 for var in honeypots[honeypot]:
                     setattr(self, var, honeypots[honeypot][var])
-                    print(f'var: {var} - {honeypots[honeypot][var]}')
+                    # print(f'var: {var} - {honeypots[honeypot][var]}')
                     if var == 'port':
                         setattr(self, 'auto_disabled', True)
     except Exception as e:
@@ -103,11 +103,11 @@ def setup_logger(name, temp_name, config):
                 syslog_address = config_data.get('syslog_address', syslog_address)
                 syslog_facility = config_data.get('syslog_facility', syslog_facility)
                 custom_filter = config_data.get('custom_filter', custom_filter)
-                print('logs: {}'.format(logs))
-                print('logs_location: {}'.format(logs_location))
-                print('syslog_address: {}'.format(syslog_address))
-                print('syslog_facility: {}'.format(syslog_facility))
-                print('custom_filter: {}'.format(custom_filter))
+                # print('logs: {}'.format(logs))
+                # print('logs_location: {}'.format(logs_location))
+                # print('syslog_address: {}'.format(syslog_address))
+                # print('syslog_facility: {}'.format(syslog_facility))
+                # print('custom_filter: {}'.format(custom_filter))
         except Exception as e:
             print('Error: {}'.format(repr(e)))
 
@@ -131,7 +131,7 @@ def setup_logger(name, temp_name, config):
             if config_data is not None:
                 if 'honeypots' in config_data:
                     temp_server_name = name[5:].lower()
-                    print('temp_server_name: {}'.format(temp_server_name))
+                    # print('temp_server_name: {}'.format(temp_server_name))
                     if temp_server_name in config_data['honeypots']:
                         if 'log_file_name' in config_data['honeypots'][temp_server_name]:
                             temp_name = config_data['honeypots'][temp_server_name]['log_file_name']
@@ -144,7 +144,6 @@ def setup_logger(name, temp_name, config):
         except Exception as e:
             print('Error: {}'.format(repr(e)))
 
-        print('max_bytes: {}'.format(max_bytes))    
         file_handler = CustomHandlerFileRotate(temp_name, logs, custom_filter, path.join(logs_location, temp_name), maxBytes=max_bytes, backupCount=backup_count)
         ret_logs_obj.addHandler(file_handler)
 
