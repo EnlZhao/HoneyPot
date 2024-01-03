@@ -1,14 +1,6 @@
 
 # HoneyPots
 
-## Http Server
-
-- A simple http server that can be used as a honeypot
-
-| login Page | login Success |
-| :--------: | :-----------: |
-| ![login](./pic/login.png) | ![login_success](./pic/loginsuccess.png) |
-
 ## Install
 
 ```
@@ -18,21 +10,29 @@ Python 3.8.18
 > pip3 install -r requirements.txt
 ```
 
-## Usage Example 
+## Http Server
 
-### Quick Start
+- A simple http server that can be used as a honeypot
+
+| login Page | login Success |
+| :--------: | :-----------: |
+| ![login](./pic/login.png) | ![login_success](./pic/loginsuccess.png) |
+
+### Usage Example 
+
+#### Quick Start
 
 ```
 > python3 code/http_server.py
 ```
 
-### Custom username, password, ip or port
+#### Custom username, password, ip or port
 
 ```
 > python3 code/http_server.py --username='zju' --password='zju' --ip='0.0.0.0' --port='80'
 ```
 
-### config.json (Output to file and terminal)
+#### config.json (Output to file and terminal)
 
 ```json
 {
@@ -56,7 +56,7 @@ Python 3.8.18
 > python3 code/http_server.py --config='config.json'
 ```
 
-### Possible Error
+#### Possible Error
 
 ```
 Couldn't listen on any:80: [Errno 48] Address already in use.
