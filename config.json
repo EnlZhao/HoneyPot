@@ -1,0 +1,15 @@
+{
+    "logs": "file, terminal",
+    "logs_location": "./log/",
+    "honeypots": {
+        "http": {
+            "port": 80,
+            "ip": "127.0.0.1",
+            "username": "ez",
+            "password": "ez",
+            "log_file_name": "http.log",
+            "max_bytes": 10000,
+            "backup_count": 10
+        }
+    }
+}

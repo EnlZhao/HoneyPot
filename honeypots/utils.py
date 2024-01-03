@@ -137,14 +137,21 @@ def setup_logger(name, temp_name, config, drop=False):
     config_data = None
     custom_filter = None
     if config and config != '':
-        with suppress(Exception):
+        try:
             with open(config) as f:
                 config_data = load(f)
                 logs = config_data.get('logs', logs)
+                print('logs: {}'.format(logs))
                 logs_location = config_data.get('logs_location', logs_location)
+                print('logs_location: {}'.format(logs_location))
                 syslog_address = config_data.get('syslog_address', syslog_address)
+                print('syslog_address: {}'.format(syslog_address))
                 syslog_facility = config_data.get('syslog_facility', syslog_facility)
+                print('syslog_facility: {}'.format(syslog_facility))
                 custom_filter = config_data.get('custom_filter', custom_filter)
+                print('custom_filter: {}'.format(custom_filter))
+        except Exception as e:
+            print('Error: {}'.format(repr(e)))
     if logs_location == '' or logs_location is None:
         logs_location = path.join(gettempdir(), 'logs')
     if not path.exists(logs_location):
@@ -152,14 +159,14 @@ def setup_logger(name, temp_name, config, drop=False):
     file_handler = None
     ret_logs_obj = getLogger(temp_name)
     ret_logs_obj.setLevel(DEBUG)
-    if 'db_postgres' in logs or 'db_sqlite' in logs:
-        ret_logs_obj.addHandler(CustomHandler(temp_name, logs, custom_filter, config_data, drop))
-    elif 'terminal' in logs:
+
+    if 'terminal' in logs:
         ret_logs_obj.addHandler(CustomHandler(temp_name, logs, custom_filter))
     if 'file' in logs:
         max_bytes = 10000
         backup_count = 10
-        with suppress(Exception):
+        # with suppress(Exception):
+        try:
             if config_data is not None:
                 if 'honeypots' in config_data:
                     temp_server_name = name[1:].lower().replace('server', '')
@@ -170,6 +177,8 @@ def setup_logger(name, temp_name, config, drop=False):
                             max_bytes = config_data['honeypots'][temp_server_name]['max_bytes']
                         if 'backup_count' in config_data['honeypots'][temp_server_name]:
                             backup_count = config_data['honeypots'][temp_server_name]['backup_count']
+        except Exception as e:
+            print('Error: {}'.format(repr(e)))
         file_handler = CustomHandlerFileRotate(temp_name, logs, custom_filter, path.join(logs_location, temp_name), maxBytes=max_bytes, backupCount=backup_count)
         ret_logs_obj.addHandler(file_handler)
     if 'syslog' in logs:

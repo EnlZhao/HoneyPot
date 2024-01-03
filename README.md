@@ -6,21 +6,47 @@
 ## Install
 
 ```
-pip3 install -r requirements.txt
+> python3 --version
+Python 3.8.18
+
+> pip3 install -r requirements.txt
 ```
 
 ## Usage Example 
 
-```
-python code/http_server.py
-```
+### Quick Start
 
 ```
-python code/http_server.py --custom --username='ez' --password='123'
+> python3 code/http_server.py
 ```
 
-#### config.json (Output to folder and terminal)
+### Custom username, password, ip and port
+
+```
+> python3 code/http_server.py --custom --username='zju' --password='zju' --ip='0.0.0.0' --port='80'
+```
+
+### config.json (Output to file and terminal)
+
 ```json
+{
+    "logs": "file, terminal",
+    "logs_location": "./log/",
+    "honeypots": {
+        "http": {
+            "port": 80,
+            "ip": "127.0.0.1",
+            "username": "ez",
+            "password": "ez",
+            "log_file_name": "http.log",
+            "max_bytes": 10000,
+            "backup_count": 10
+        }
+    }
+}
+```
+
+<!-- ```json
 {
   "logs": "file,terminal,json",
   "logs_location": "/var/log/honeypots/",
@@ -44,33 +70,12 @@ python code/http_server.py --custom --username='ez' --password='123'
     }
   }
 }
+``` -->
+
+```
+> python3 code/http_server.py --config='config.json'
 ```
 
-## Usage Example - Import as object and auto test
-```python
-from honeypots import QSSHServer
-qsshserver = QSSHServer(port=9999)
-qsshserver.run_server(process=True)
-qsshserver.test_server(port=9999)
-INFO:chameleonlogger:['servers', {'status': 'success', 'username': 'test', 'src_ip': '127.0.0.1', 'server': 'ssh_server', 'action': 'login', 'password': 'test', 'src_port': 38696}]
-qsshserver.kill_server()
-```
-
-## Usage Example - Import as object and test with external ssh command
-```python
-#you need higher user permissions for binding\closing some ports
-
-from honeypots import QSSHServer
-qsshserver = QSSHServer(port=9999)
-qsshserver.run_server(process=True)
-```
-```sh
-ssh test@127.0.0.1
-```
-```python
-INFO:chameleonlogger:['servers', {'status': 'success', 'username': 'test', 'src_ip': '127.0.0.1', 'server': 'ssh_server', 'action': 'login', 'password': 'test', 'src_port': 38696}]
-qsshserver.kill_server()
-```
 
 ## All output values
 
@@ -89,47 +94,9 @@ qsshserver.kill_server()
 'password'  :'Attacker password'
 ```
 
-## Current Servers/Emulators
-
-- QDNSServer
-    - Server: DNS 
-    - Port: 53/udp
-    - Lib: Twisted.dns
-    - Logs: ip, port
-- QFTPServer
-    - Server: FTP 
-    - Port: 21/tcp
-    - Lib: Twisted.ftp
-    - Logs: ip, port, username and password (default)
-    - Options: Capture all threat actor commands and data (avalible)
-- QHTTPServer
-    - Server: HTTP
-    - Port: 80/tcp
-    - Lib: Twisted.http
-    - Logs: ip, port, username and password
-    - Options: Capture all threat actor commands and data (avalible)
-- QSSHServer
-    - Server: SSH
-    - Port: 22/tcp
-    - Lib: paramiko
-    - Logs: ip, port, username and password
-    - Options: Capture all threat actor commands and data (avalible)
-- QTelnetServer
-    - Server: Telnet
-    - Port: 23/tcp
-    - Lib: Twisted
-    - Logs: ip, port, username and password
-
-
-
 ## acknowledgment
 
 - This project is based on the work of [honeypots](https://github.com/qeeqbox/honeypots)
-- By using this framework, you are accepting the license terms of all these packages: `pipenv twisted psutil psycopg2-binary dnspython requests impacket paramiko redis mysql-connector pycryptodome vncdotool service_identity requests[socks] pygments http.server`
-- Let me know if I missed a reference or resource!
 
-## Notes
-
-- Almost all servers and emulators are stripped-down - You can adjust that as needed
 
 

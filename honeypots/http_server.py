@@ -17,7 +17,7 @@ from contextlib import suppress
 
 disable_warnings()
 
-class QHTTPServer():
+class HPhttp():
     def __init__(self, **kwargs):
         self.auto_disabled = None # if True, 自动获取端口失败
         self.key = path.join(gettempdir(), next(_get_candidate_names()))    # 生成一个随机的 key
@@ -31,23 +31,30 @@ class QHTTPServer():
 
         self.uuid = __class__.__name__ + '_' + str(uuid4())[:8]  # 生成一个 uuid
 
-        # self.config = kwargs.get('config', '')
+        self.config = kwargs.get('config', '')
 
-        # if self.config:
-        #     self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
-        #     set_local_vars(self, self.config)
-        # else:
-        #     self.logs = setup_logger(__class__.__name__, self.uuid, None)
+        if self.config:
+            self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
+            # print('self.logs', self.logs)
+            set_local_vars(self, self.config)
+        else:
+            self.logs = setup_logger(__class__.__name__, self.uuid, None)
         
-        self.logs = setup_logger(__class__.__name__, self.uuid, None)   # 设置日志
+        # self.logs = setup_logger(__class__.__name__, self.uuid, None)   # 设置日志
 
         self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'    
+        print('self.ip', self.ip)
         self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80  
+        print('self.port', self.port)
         self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'  
+        print('self.username', self.username)
         self.password = kwargs.get('password', None) or (hasattr(self, 'password') and self.password) or 'honeypot'  
+        print('self.password', self.password)
 
         self.options = kwargs.get('options', '') or (hasattr(self, 'options') and self.options) or getenv('HONEYPOTS_OPTIONS', '') or ''    # default options
         
+        print('self.options', self.options)
+
         disable_logger(1, tlog)     # 禁用 twisted 的日志
 
     def http_server_main(self):
@@ -196,7 +203,7 @@ class QHTTPServer():
                     headers.update({'method': check_bytes(request.method)})
                     headers.update({'uri': check_bytes(request.uri)})
                 except Exception as e:
-                    print('error: ', e)
+                    print(e)
 
                 if 'fix_get_client_ip' in _q_s.options:
                     try:
@@ -206,7 +213,7 @@ class QHTTPServer():
                         elif b'X-Real-IP' in raw_headers:
                             client_ip = check_bytes(raw_headers[b'X-Real-IP'][0])
                     except Exception as e:
-                        print('error: ', e)
+                        print(e)
 
                 if client_ip == "":
                     client_ip = request.getClientAddress().host
@@ -217,7 +224,7 @@ class QHTTPServer():
                     # else:
                         # _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
                 # except Exception as e:
-                    # print('error: ', e)
+                    # print(e)
 
                 if _q_s.mocking_server != '':
                     request.responseHeaders.removeHeader('Server')
@@ -258,9 +265,12 @@ class QHTTPServer():
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     return self.trap_page
 
-        reactor.listenTCP(self.port, Site(MainResource()))
-        print('honypot is running')
-        reactor.run()
+        try:
+            reactor.listenTCP(self.port, Site(MainResource()))
+            print('honypot is running')
+            reactor.run()
+        except Exception as e:
+            print(e)
 
     def run_server(self, process=False, auto=False):
         status = 'error'
@@ -306,13 +316,13 @@ if __name__ == '__main__':
     parsed = server_arguments()
 
     if parsed.custom:
-        qhttpserver = QHTTPServer(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
-        qhttpserver.run_server()
-        qhttpserver.close_port()
-        qhttpserver.kill_server()
-        # qhttpserver.http_server_main()
+        http_server = HPhttp(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
+        http_server.run_server()
+        # http_server.close_port()
+        # http_server.kill_server()
+        # http_server.http_server_main()
     else:
-        qhttpserver = QHTTPServer()
-        qhttpserver.http_server_main()
-        qhttpserver.close_port()
-        qhttpserver.kill_server()
+        http_server = HPhttp()
+        http_server.http_server_main()
+        # http_server.close_port()
+        # http_server.kill_server()
