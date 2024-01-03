@@ -262,11 +262,7 @@ class HoneyHTTP():
 
 
 if __name__ == '__main__':
-    try:
-        parsed = server_arguments()
-    except Exception as e:
-        print(e)
+    parsed = server_arguments()
 
-    print(f'ip: {parsed.ip}; port: {parsed.port}; username: {parsed.username}; password: {parsed.password}; config: {parsed.config}')
     http_server = HoneyHTTP(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, config=parsed.config)
     http_server.http_server()
