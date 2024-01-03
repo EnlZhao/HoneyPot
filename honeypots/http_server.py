@@ -16,11 +16,11 @@ disable_warnings()
 
 class HoneyHTTP():
     def __init__(self, **kwargs):
-        self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 
+        self.fake_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 
                                       'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 
                                       'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 
                                       'Apache/2.2.25', 'Microsoft-IIS/10.0', 'Apache/2.2.3', 'nginx/1.12.1', 
-                                      'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])  # 随机选择一个 mocking server
+                                      'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])  # 随机选择一个 server 作伪装
 
         self.uuid = __class__.__name__ + '_' + str(uuid4())[:8]  # 生成一个 uuid
 
@@ -173,22 +173,16 @@ class HoneyHTTP():
                 """
                 headers = {}
                 client_ip = ""
-
-                def normalize(string):
-                    if isinstance(string, bytes):
-                        return string.decode()
-                    else:
-                        return str(string)
                 
                 # 获取请求头
                 for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
                     # 使用 ',' 将 value 连接起来
-                    value = ','.join(map(normalize, value))
+                    value = ','.join(map(self.normalize, value))
                     # 将 item 和 value 添加到 headers 中
-                    headers.update({normalize(item): value})
+                    headers.update({self.normalize(item): value})
                 # 获取请求方法和请求 uri
-                headers.update({'method': normalize(request.method)})
-                headers.update({'uri': normalize(request.uri)})
+                headers.update({'method': self.normalize(request.method)})
+                headers.update({'uri': self.normalize(request.uri)})
 
                 """
                 获取客户端 ip:
@@ -197,31 +191,22 @@ class HoneyHTTP():
                 """
                 raw_headers = dict(request.requestHeaders.getAllRawHeaders())
                 if b'X-Forwarded-For' in raw_headers:
-                    client_ip = normalize(raw_headers[b'X-Forwarded-For'][0])
+                    client_ip = self.normalize(raw_headers[b'X-Forwarded-For'][0])
                 elif b'X-Real-IP' in raw_headers:
-                    client_ip = normalize(raw_headers[b'X-Real-IP'][0])
+                    client_ip = self.normalize(raw_headers[b'X-Real-IP'][0])
                 else:
                     client_ip = request.getClientAddress().host
 
                 my_server.logs.info({'server': 'http', 'action': 'connection', 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port, 'data': headers})
 
-                if my_server.mocking_server != '':
+                if my_server.fake_server != '':
                     request.responseHeaders.removeHeader('Server')
-                    request.responseHeaders.addRawHeader('Server', my_server.mocking_server)
+                    request.responseHeaders.addRawHeader('Server', my_server.fake_server)
 
                 if request.method == b'GET' or request.method == b'POST':
                     my_server.logs.info({'server': 'http', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
-                if request.method == b'GET':
-                    if request.uri == b'/login.html':
-                        if my_server.username != '' and my_server.password != '':
-                            request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                            return self.login_page
-
-                    request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                    return self.login_page
-
-                elif request.method == b'POST':
+                if request.method == b'POST':
                     self.headers = request.getAllHeaders()
                     if request.uri == b'/login.html' or b'/':
                         if my_server.username != '' and my_server.password != '':
@@ -231,8 +216,7 @@ class HoneyHTTP():
                                 password = self.normalize(form['password'].value)
                                 status = 'failed'
                                 if username == my_server.username and password == my_server.password:
-                                    username = my_server.username
-                                    password = my_server.password
+                                    username, password = my_server.username, my_server.password
                                     status = 'success'
                                 my_server.logs.info({'server': 'http', 'action': 'login', 'status': status, 'attacker_ip': client_ip, 'attacker_port': request.getClientAddress().port, 'attack_username': username, 'attack_password': password, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
@@ -242,7 +226,7 @@ class HoneyHTTP():
                     return self.trap_page
                 else:
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                    return self.trap_page
+                    return self.login_page
 
         try:
             reactor.listenTCP(self.port, Site(MainResource()))
