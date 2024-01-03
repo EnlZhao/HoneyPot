@@ -8,8 +8,6 @@ from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.python import log as tlog
 from random import choice
-from tempfile import gettempdir, _get_candidate_names
-from os import path
 from utils import server_arguments, setup_logger, disable_logger, set_local_vars
 from uuid import uuid4
 
@@ -182,38 +180,32 @@ class HoneyHTTP():
                         return str(string)
                 
                 # 获取请求头
-                try:
-                    for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
-                        headers.update({normalize(item): ','.join(map(normalize, value))})
-                    headers.update({'method': normalize(request.method)})
-                    headers.update({'uri': normalize(request.uri)})
-                except Exception as e:
-                    print(e)
+                for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
+                    headers.update({normalize(item): ','.join(map(normalize, value))})
+                headers.update({'method': normalize(request.method)})
+                headers.update({'uri': normalize(request.uri)})
 
-                # 获取客户端 ip
-                try:
-                    raw_headers = dict(request.requestHeaders.getAllRawHeaders())
-                    if b'X-Forwarded-For' in raw_headers:
-                        client_ip = normalize(raw_headers[b'X-Forwarded-For'][0])
-                    elif b'X-Real-IP' in raw_headers:
-                        client_ip = normalize(raw_headers[b'X-Real-IP'][0])
-                except Exception as e:
-                    print(e)
-
-                if client_ip == "":
+                """
+                获取客户端 ip:
+                    检查是否有 X-Forwarded-For 或 X-Real-IP 请求头
+                    这两个字段通常用于存储客户端的真实 ip, 特别是在使用反向代理的情况下
+                """
+                raw_headers = dict(request.requestHeaders.getAllRawHeaders())
+                if b'X-Forwarded-For' in raw_headers:
+                    client_ip = normalize(raw_headers[b'X-Forwarded-For'][0])
+                elif b'X-Real-IP' in raw_headers:
+                    client_ip = normalize(raw_headers[b'X-Real-IP'][0])
+                else:
                     client_ip = request.getClientAddress().host
 
-                try:
-                    _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port, 'data': headers})
-                except Exception as e:
-                    print(e)
+                _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': _q_s.ip, 'server_port': _q_s.port, 'data': headers})
 
                 if _q_s.mocking_server != '':
                     request.responseHeaders.removeHeader('Server')
                     request.responseHeaders.addRawHeader('Server', _q_s.mocking_server)
 
                 if request.method == b'GET' or request.method == b'POST':
-                    _q_s.logs.info({'server': 'http_server', 'action': request.method.decode(), 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
+                    _q_s.logs.info({'server': 'http_server', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': _q_s.ip, 'server_port': _q_s.port})
 
                 if request.method == b'GET':
                     if request.uri == b'/login.html':
@@ -237,7 +229,7 @@ class HoneyHTTP():
                                     username = _q_s.username
                                     password = _q_s.password
                                     status = 'success'
-                                _q_s.logs.info({'server': 'http_server', 'action': 'login', 'status': status, 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'username': username, 'password': password, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
+                                _q_s.logs.info({'server': 'http_server', 'action': 'login', 'status': status, 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'username': username, 'password': password, 'server_ip': _q_s.ip, 'server_port': _q_s.port})
 
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     if status == 'failed':
