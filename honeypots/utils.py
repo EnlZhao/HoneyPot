@@ -103,11 +103,11 @@ def setup_logger(name, temp_name, config):
                 syslog_address = config_data.get('syslog_address', syslog_address)
                 syslog_facility = config_data.get('syslog_facility', syslog_facility)
                 custom_filter = config_data.get('custom_filter', custom_filter)
-                # print('logs: {}'.format(logs))
-                # print('logs_location: {}'.format(logs_location))
-                # print('syslog_address: {}'.format(syslog_address))
-                # print('syslog_facility: {}'.format(syslog_facility))
-                # print('custom_filter: {}'.format(custom_filter))
+                print('logs: {}'.format(logs))
+                print('logs_location: {}'.format(logs_location))
+                print('syslog_address: {}'.format(syslog_address))
+                print('syslog_facility: {}'.format(syslog_facility))
+                print('custom_filter: {}'.format(custom_filter))
         except Exception as e:
             print('Error: {}'.format(repr(e)))
 
@@ -143,6 +143,8 @@ def setup_logger(name, temp_name, config):
                             backup_count = config_data['honeypots'][temp_server_name]['backup_count']
         except Exception as e:
             print('Error: {}'.format(repr(e)))
+
+        print('max_bytes: {}'.format(max_bytes))    
         file_handler = CustomHandlerFileRotate(temp_name, logs, custom_filter, path.join(logs_location, temp_name), maxBytes=max_bytes, backupCount=backup_count)
         ret_logs_obj.addHandler(file_handler)
 
@@ -163,7 +165,7 @@ def serialize_object(_dict):
         return repr(_dict).replace('\x00', ' ')
 
 class CustomHandlerFileRotate(RotatingFileHandler):
-    def __init__(self, logs='', custom_filter=None, filename='', mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False):
+    def __init__(self, uuid='', logs='', custom_filter=None, filename='', mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False, errors=None):
         self.logs = logs
         self.custom_filter = custom_filter
         RotatingFileHandler.__init__(self, filename, mode, maxBytes, backupCount, encoding, delay)
@@ -174,7 +176,7 @@ class CustomHandlerFileRotate(RotatingFileHandler):
             super().emit(_record)
 
 class CustomHandler(Handler):
-    def __init__(self, uuid='', logs='', custom_filter=None):
+    def __init__(self, uuid='', logs='', custom_filter=None, config=None, drop=False):
         self.logs = logs
         self.uuid = uuid
         self.custom_filter = custom_filter

@@ -17,29 +17,27 @@ disable_warnings()
 
 class HoneyHTTP():
     def __init__(self, **kwargs):
-        self.auto_disabled = None # if True, 自动获取端口失败
         self.key = path.join(gettempdir(), next(_get_candidate_names()))    # 生成一个随机的 key
-        self.cert = path.join(gettempdir(), next(_get_candidate_names()))   # 生成一个随机的 cert
+        self.cert = path.join(gettempdir(), next(_get_candidate_names()))   # 生成一个随机的 certificate
         self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 
                                       'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 
                                       'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 
                                       'Apache/2.2.25', 'Microsoft-IIS/10.0', 'Apache/2.2.3', 'nginx/1.12.1', 
                                       'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])  # 随机选择一个 mocking server
-        self.process = None # 进程
 
         self.uuid = __class__.__name__ + '_' + str(uuid4())[:8]  # 生成一个 uuid
 
         self.config = kwargs.get('config', '')
+        print(f'config: {self.config}')
 
         if self.config:
+            print(f'setup_logger: {__class__.__name__}, {self.uuid}, {self.config}')
             self.logs = setup_logger(__class__.__name__, self.uuid, self.config)
-            # print('self.logs', self.logs)
+            print(f'logs: {self.logs}')
             set_local_vars(self, self.config)
         else:
             self.logs = setup_logger(__class__.__name__, self.uuid, None)
         
-        # self.logs = setup_logger(__class__.__name__, self.uuid, None)   # 设置日志
-
         self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'    
         self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80  
         self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'  
@@ -255,6 +253,7 @@ class HoneyHTTP():
                     return self.trap_page
 
         try:
+            print('honypot is starting')
             reactor.listenTCP(self.port, Site(MainResource()))
             print('honypot is running')
             reactor.run()
@@ -263,7 +262,11 @@ class HoneyHTTP():
 
 
 if __name__ == '__main__':
-    parsed = server_arguments()
+    try:
+        parsed = server_arguments()
+    except Exception as e:
+        print(e)
 
-    http_server = HoneyHTTP(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
+    print(f'ip: {parsed.ip}; port: {parsed.port}; username: {parsed.username}; password: {parsed.password}; config: {parsed.config}')
+    http_server = HoneyHTTP(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, config=parsed.config)
     http_server.http_server()
