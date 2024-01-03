@@ -210,7 +210,7 @@ class HoneyHTTP():
                     request.responseHeaders.addRawHeader('Server', my_server.mocking_server)
 
                 if request.method == b'GET' or request.method == b'POST':
-                    my_server.logs.info({'server': 'http_server', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port})
+                    my_server.logs.info({'server': 'http', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
                 if request.method == b'GET':
                     if request.uri == b'/login.html':
@@ -234,7 +234,7 @@ class HoneyHTTP():
                                     username = my_server.username
                                     password = my_server.password
                                     status = 'success'
-                                my_server.logs.info({'server': 'http_server', 'action': 'login', 'status': status, 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'username': username, 'password': password, 'server_ip': my_server.ip, 'server_port': my_server.port})
+                                my_server.logs.info({'server': 'http', 'action': 'login', 'status': status, 'attacker_ip': client_ip, 'attacker_port': request.getClientAddress().port, 'attack_username': username, 'attack_password': password, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     if status == 'failed':
