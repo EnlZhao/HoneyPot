@@ -43,7 +43,7 @@ class HoneyHTTP():
 
         print(f'ip: {self.ip}; port: {self.port}; username: {self.username}; password: {self.password}')
         
-        # disable_logger(True, tlog)    
+        disable_logger(True, tlog)    
 
     def http_server(self):
         _q_s = self 
