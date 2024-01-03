@@ -9,11 +9,9 @@ from twisted.web.resource import Resource
 from twisted.python import log as tlog
 from random import choice
 from tempfile import gettempdir, _get_candidate_names
-from subprocess import Popen
 from os import path
-from utils import close_port_wrapper, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
+from utils import server_arguments, setup_logger, disable_logger, set_local_vars
 from uuid import uuid4
-from contextlib import suppress
 
 disable_warnings()
 
@@ -263,12 +261,6 @@ class HoneyHTTP():
         except Exception as e:
             print(e)
 
-    # def close_port(self):
-    #     # 关闭端口
-
-
-    # def kill_server(self):
-    #     # 杀死进程
 
 if __name__ == '__main__':
     parsed = server_arguments()

@@ -82,19 +82,6 @@ def parse_record(record, custom_filter, type_):
 
     return record
 
-def get_running_servers():
-    temp_list = []
-    try:
-        honeypots = ['HoneyHTTP']
-        for process in process_iter():
-            cmdline = ' '.join(process.cmdline())
-            for honeypot in honeypots:
-                if '--custom' in cmdline and honeypot in cmdline:
-                    temp_list.append(cmdline.split(' --custom ')[1])
-    except Exception as e:
-        print('Error: {}'.format(repr(e)))
-    return temp_list
-
 def disable_logger(logger_type, object):
     if logger_type == True:
         temp_name = path.join(gettempdir(), next(_get_candidate_names()))
@@ -161,46 +148,6 @@ def setup_logger(name, temp_name, config):
 
     return ret_logs_obj
 
-
-def kill_server_wrapper(server_name, name, process):
-    try:
-        if process is not None:
-            process.kill()
-        for process in process_iter():
-            cmdline = ' '.join(process.cmdline())
-            if '--custom' in cmdline and name in cmdline:
-                process.send_signal(SIGTERM)
-                process.kill()
-        return True
-    except Exception as e:
-        print('Error: {}'.format(repr(e)))
-    return False
-
-def close_port_wrapper(server_name, ip, port, logs):
-    ret = False
-    sock = socket(AF_INET, SOCK_STREAM)
-    sock.settimeout(2)
-    if sock.connect_ex((ip, port)) == 0:
-        for process in process_iter():
-            try:
-                for conn in process.connections(kind='inet'):
-                    if port == conn.laddr.port:
-                        process.send_signal(SIGTERM)
-                        process.kill()
-            except Exception as e:
-                logs.error({'server': server_name, 'error': repr(e)})
-    try:
-        sock.bind((ip, port))
-        ret = True
-    except Exception as e:
-        logs.error({'server': server_name, 'error': repr(e)})
-
-    if sock.connect_ex((ip, port)) != 0 and ret:
-        return True
-    else:
-        logs.error({'server': server_name, 'error': 'port_open.. {} still open..'.format(ip)})
-        return False
-
 def serialize_object(_dict):
     if isinstance(_dict, Mapping):
         return dict((k, serialize_object(v)) for k, v in _dict.items())
@@ -215,7 +162,6 @@ def serialize_object(_dict):
     else:
         return repr(_dict).replace('\x00', ' ')
 
-
 class CustomHandlerFileRotate(RotatingFileHandler):
     def __init__(self, logs='', custom_filter=None, filename='', mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False):
         self.logs = logs
@@ -228,7 +174,7 @@ class CustomHandlerFileRotate(RotatingFileHandler):
             super().emit(_record)
 
 class CustomHandler(Handler):
-    def __init__(self, uuid='', logs='', custom_filter=None, config=None, drop=False):
+    def __init__(self, uuid='', logs='', custom_filter=None):
         self.logs = logs
         self.uuid = uuid
         self.custom_filter = custom_filter
@@ -258,13 +204,3 @@ def server_arguments():
     _server_parsergroupdef = _server_parser.add_argument_group('Initialize Loging')
     _server_parsergroupdef.add_argument('--config', type=str, help='config file for logs and database', required=False, default='')
     return _server_parser.parse_args()
-
-
-    # def close_port(self):
-    #     # 关闭端口
-    #     ret = close_port_wrapper('http_server', self.ip, self.port, self.logs)
-    #     return ret
-
-    # def kill_server(self):
-    #     ret = kill_server_wrapper('http_server', self.uuid, self.process)
-    #     return ret
