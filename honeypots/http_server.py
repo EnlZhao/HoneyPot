@@ -10,8 +10,8 @@ from twisted.python import log as tlog
 from random import choice
 from tempfile import gettempdir, _get_candidate_names
 from subprocess import Popen
-from os import path, getenv
-from utils import close_port_wrapper, get_free_port, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
+from os import path
+from utils import close_port_wrapper, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
 from uuid import uuid4
 from contextlib import suppress
 
@@ -49,7 +49,7 @@ class HoneyHTTP():
 
         print(f'ip: {self.ip}; port: {self.port}; username: {self.username}; password: {self.password}')
         
-        disable_logger(1, tlog)     # 禁用 twisted 的日志
+        disable_logger(True, tlog)    
 
     def http_server(self):
         _q_s = self 
@@ -199,6 +199,7 @@ class HoneyHTTP():
                 except Exception as e:
                     print(e)
 
+                # 获取客户端 ip
                 try:
                     raw_headers = dict(request.requestHeaders.getAllRawHeaders())
                     if b'X-Forwarded-For' in raw_headers:
@@ -262,18 +263,15 @@ class HoneyHTTP():
         except Exception as e:
             print(e)
 
-    def close_port(self):
-        ret = close_port_wrapper('http_server', self.ip, self.port, self.logs)
-        return ret
+    # def close_port(self):
+    #     # 关闭端口
 
-    def kill_server(self):
-        ret = kill_server_wrapper('http_server', self.uuid, self.process)
-        return ret
+
+    # def kill_server(self):
+    #     # 杀死进程
 
 if __name__ == '__main__':
     parsed = server_arguments()
 
     http_server = HoneyHTTP(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
     http_server.http_server()
-    http_server.close_port()
-    http_server.kill_server()

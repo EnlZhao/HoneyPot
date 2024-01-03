@@ -13,12 +13,15 @@ from logging import Handler, DEBUG, getLogger
 from sys import stdout
 from datetime import datetime
 from tempfile import _get_candidate_names, gettempdir
-from os import makedirs, path, scandir, devnull, getuid
+from os import makedirs, path, devnull
 from collections.abc import Mapping
-from contextlib import suppress
 
 old_stderr = sys.stderr
 sys.stderr = open(devnull, 'w')
+
+class ComplexEncoder(JSONEncoder):
+    def default(self, obj):
+        return repr(obj).replace('\x00', ' ')
 
 def set_local_vars(self, config):
     try:
@@ -67,39 +70,37 @@ def parse_record(record, custom_filter, type_):
             record.msg = serialize_object(record.msg)
     except Exception as e:
         record.msg = serialize_object({'name': record.name, 'error': repr(e)})
-    with suppress(Exception):
+    try:
         if type_ == 'file':
             if custom_filter is not None:
                 if 'dump_json_to_file' in custom_filter['honeypots']['options']:
                     record.msg = dumps(record.msg, sort_keys=True, cls=ComplexEncoder)
-        elif type_ == 'db_postgres':
-            pass
-        elif type_ == 'db_sqlite':
-            for item in ['data', 'error']:
-                if item in record.msg:
-                    if not isinstance(record.msg[item], str):
-                        record.msg[item] = repr(record.msg[item]).replace('\x00', ' ')
         else:
             record.msg = dumps(record.msg, sort_keys=True, cls=ComplexEncoder)
+    except Exception as e:
+        record.msg = serialize_object({'name': record.name, 'error': repr(e)})
+
     return record
 
 def get_running_servers():
     temp_list = []
-    with suppress(Exception):
-        honeypots = ['QDNSServer', 'QFTPServer', 'QHTTPProxyServer', 'QHTTPServer', 'QHTTPSServer', 'QIMAPServer', 'QMysqlServer', 'QPOP3Server', 'QPostgresServer', 'QRedisServer', 'QSMBServer', 'QSMTPServer', 'QSOCKS5Server', 'QSSHServer', 'QTelnetServer', 'QVNCServer', 'QElasticServer', 'QMSSQLServer', 'QLDAPServer', 'QNTPServer', 'QMemcacheServer', 'QOracleServer', 'QSNMPServer']
+    try:
+        honeypots = ['HoneyHTTP']
         for process in process_iter():
             cmdline = ' '.join(process.cmdline())
             for honeypot in honeypots:
                 if '--custom' in cmdline and honeypot in cmdline:
                     temp_list.append(cmdline.split(' --custom ')[1])
+    except Exception as e:
+        print('Error: {}'.format(repr(e)))
     return temp_list
 
 def disable_logger(logger_type, object):
-    if logger_type == 1:
+    if logger_type == True:
         temp_name = path.join(gettempdir(), next(_get_candidate_names()))
         object.startLogging(open(temp_name, 'w'), setStdout=False)
 
-def setup_logger(name, temp_name, config, drop=False):
+def setup_logger(name, temp_name, config):
     logs = 'terminal'
     logs_location = ''
     syslog_address = ''
@@ -160,29 +161,9 @@ def setup_logger(name, temp_name, config, drop=False):
 
     return ret_logs_obj
 
-def clean_all():
-    for entry in scandir('.'):
-        if entry.is_file() and entry.name.endswith('_server.py'):
-            kill_servers(entry.name)
-
-def kill_servers(name):
-    with suppress(Exception):
-        for process in process_iter():
-            cmdline = ' '.join(process.cmdline())
-            if '--custom' in cmdline and name in cmdline:
-                process.send_signal(SIGTERM)
-                process.kill()
-
-def check_if_server_is_running(uuid):
-    with suppress(Exception):
-        for process in process_iter():
-            cmdline = ' '.join(process.cmdline())
-            if '--custom' in cmdline and uuid in cmdline:
-                return True
-    return False
 
 def kill_server_wrapper(server_name, name, process):
-    with suppress(Exception):
+    try:
         if process is not None:
             process.kill()
         for process in process_iter():
@@ -191,18 +172,9 @@ def kill_server_wrapper(server_name, name, process):
                 process.send_signal(SIGTERM)
                 process.kill()
         return True
+    except Exception as e:
+        print('Error: {}'.format(repr(e)))
     return False
-
-
-def get_free_port():
-    port = 0
-    with suppress(Exception):
-        tcp = socket(AF_INET, SOCK_STREAM)
-        tcp.bind(('', 0))
-        addr, port = tcp.getsockname()
-        tcp.close()
-    return port
-
 
 def close_port_wrapper(server_name, ip, port, logs):
     ret = False
@@ -210,26 +182,24 @@ def close_port_wrapper(server_name, ip, port, logs):
     sock.settimeout(2)
     if sock.connect_ex((ip, port)) == 0:
         for process in process_iter():
-            with suppress(Exception):
+            try:
                 for conn in process.connections(kind='inet'):
                     if port == conn.laddr.port:
                         process.send_signal(SIGTERM)
                         process.kill()
-    with suppress(Exception):
+            except Exception as e:
+                logs.error({'server': server_name, 'error': repr(e)})
+    try:
         sock.bind((ip, port))
         ret = True
+    except Exception as e:
+        logs.error({'server': server_name, 'error': repr(e)})
 
     if sock.connect_ex((ip, port)) != 0 and ret:
         return True
     else:
         logs.error({'server': server_name, 'error': 'port_open.. {} still open..'.format(ip)})
         return False
-
-
-class ComplexEncoder(JSONEncoder):
-    def default(self, obj):
-        return repr(obj).replace('\x00', ' ')
-
 
 def serialize_object(_dict):
     if isinstance(_dict, Mapping):
@@ -247,7 +217,7 @@ def serialize_object(_dict):
 
 
 class CustomHandlerFileRotate(RotatingFileHandler):
-    def __init__(self, uuid='', logs='', custom_filter=None, filename='', mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False, errors=None):
+    def __init__(self, logs='', custom_filter=None, filename='', mode='a', maxBytes=0, backupCount=0, encoding=None, delay=False):
         self.logs = logs
         self.custom_filter = custom_filter
         RotatingFileHandler.__init__(self, filename, mode, maxBytes, backupCount, encoding, delay)
@@ -256,7 +226,6 @@ class CustomHandlerFileRotate(RotatingFileHandler):
         _record = parse_record(record, self.custom_filter, 'file')
         if _record is not None:
             super().emit(_record)
-
 
 class CustomHandler(Handler):
     def __init__(self, uuid='', logs='', custom_filter=None, config=None, drop=False):
@@ -282,24 +251,20 @@ class CustomHandler(Handler):
 def server_arguments():
     _server_parser = ArgumentParser(prog='Server')
     _server_parsergroupdeq = _server_parser.add_argument_group('Initialize Server')
-    _server_parsergroupdeq.add_argument('--ip', type=str, help='Change server ip, current is 0.0.0.0', required=False, metavar='')
+    _server_parsergroupdeq.add_argument('--ip', type=str, help='Change server ip, current is 127.0.0.1', required=False, metavar='')
     _server_parsergroupdeq.add_argument('--port', type=int, help='Change port', required=False, metavar='')
     _server_parsergroupdeq.add_argument('--username', type=str, help='Change username', required=False, metavar='')
     _server_parsergroupdeq.add_argument('--password', type=str, help='Change password', required=False, metavar='')
-    _server_parsergroupdeq.add_argument('--resolver_addresses', type=str, help='Change resolver address', required=False, metavar='')
-    _server_parsergroupdeq.add_argument('--domain', type=str, help='A domain to test', required=False, metavar='')
-    _server_parsergroupdeq.add_argument('--folders', type=str, help='folders for smb as name:target,name:target', required=False, metavar='')
-    _server_parsergroupdeq.add_argument('--options', type=str, help='Extra options', metavar='', default='')
-    _server_parsergroupdes = _server_parser.add_argument_group('Sinffer options')
-    _server_parsergroupdes.add_argument('--filter', type=str, help='setup the Sinffer filter', required=False)
-    _server_parsergroupdes.add_argument('--interface', type=str, help='sinffer interface E.g eth0', required=False)
     _server_parsergroupdef = _server_parser.add_argument_group('Initialize Loging')
     _server_parsergroupdef.add_argument('--config', type=str, help='config file for logs and database', required=False, default='')
-    _server_parsergroupdea = _server_parser.add_argument_group('Auto Configuration')
-    _server_parsergroupdea.add_argument('--docker', action='store_true', help='Run project in docker', required=False)
-    _server_parsergroupdea.add_argument('--aws', action='store_true', help='Run project in aws', required=False)
-    _server_parsergroupdea.add_argument('--test', action='store_true', help='Test current server', required=False)
-    _server_parsergroupdea.add_argument('--custom', action='store_true', help='Run custom server', required=False)
-    _server_parsergroupdea.add_argument('--auto', action='store_true', help='Run auto configured with random port', required=False)
-    _server_parsergroupdef.add_argument('--uuid', type=str, help='unique id', required=False)
     return _server_parser.parse_args()
+
+
+    # def close_port(self):
+    #     # 关闭端口
+    #     ret = close_port_wrapper('http_server', self.ip, self.port, self.logs)
+    #     return ret
+
+    # def kill_server(self):
+    #     ret = kill_server_wrapper('http_server', self.uuid, self.process)
+    #     return ret
