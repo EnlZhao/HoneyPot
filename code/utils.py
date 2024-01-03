@@ -258,11 +258,6 @@ class ComplexEncoder(JSONEncoder):
         return repr(obj).replace('\x00', ' ')
 
 
-class ComplexEncoder_db(JSONEncoder):
-    def default(self, obj):
-        return 'Something wrong, deleted..'
-
-
 def serialize_object(_dict):
     if isinstance(_dict, Mapping):
         return dict((k, serialize_object(v)) for k, v in _dict.items())

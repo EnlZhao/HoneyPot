@@ -11,7 +11,7 @@ from random import choice
 from tempfile import gettempdir, _get_candidate_names
 from subprocess import Popen
 from os import path, getenv
-from helper import close_port_wrapper, get_free_port, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
+from utils import close_port_wrapper, get_free_port, kill_server_wrapper, server_arguments, setup_logger, disable_logger, set_local_vars, check_if_server_is_running
 from uuid import uuid4
 from contextlib import suppress
 
@@ -19,13 +19,17 @@ disable_warnings()
 
 class QHTTPServer():
     def __init__(self, **kwargs):
-        self.auto_disabled = None
-        self.key = path.join(gettempdir(), next(_get_candidate_names()))
-        self.cert = path.join(gettempdir(), next(_get_candidate_names()))
-        self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 'Apache/2.2.25', 'Microsoft-IIS/10.0', 'Apache/2.2.3', 'nginx/1.12.1', 'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])
-        self.process = None
+        self.auto_disabled = None # if True, 自动获取端口失败
+        self.key = path.join(gettempdir(), next(_get_candidate_names()))    # 生成一个随机的 key
+        self.cert = path.join(gettempdir(), next(_get_candidate_names()))   # 生成一个随机的 cert
+        self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 
+                                      'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 
+                                      'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 
+                                      'Apache/2.2.25', 'Microsoft-IIS/10.0', 'Apache/2.2.3', 'nginx/1.12.1', 
+                                      'Apache/2.4.29', 'cloudflare', 'Apache/2.2.22'])  # 随机选择一个 mocking server
+        self.process = None # 进程
 
-        self.uuid = 'honeypot' + '_' + __class__.__name__ + '_' + str(uuid4())[:8]
+        self.uuid = __class__.__name__ + '_' + str(uuid4())[:8]  # 生成一个 uuid
 
         # self.config = kwargs.get('config', '')
 
@@ -35,23 +39,24 @@ class QHTTPServer():
         # else:
         #     self.logs = setup_logger(__class__.__name__, self.uuid, None)
         
-        self.logs = setup_logger(__class__.__name__, self.uuid, None)
+        self.logs = setup_logger(__class__.__name__, self.uuid, None)   # 设置日志
 
-        self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'
-        self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80
-        self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'
-        self.password = kwargs.get('password', None) or (hasattr(self, 'password') and self.password) or 'honeypot'
+        self.ip = kwargs.get('ip', None) or (hasattr(self, 'ip') and self.ip) or '127.0.0.1'    
+        self.port = (kwargs.get('port', None) and int(kwargs.get('port', None))) or (hasattr(self, 'port') and self.port) or 80  
+        self.username = kwargs.get('username', None) or (hasattr(self, 'username') and self.username) or 'honeypot'  
+        self.password = kwargs.get('password', None) or (hasattr(self, 'password') and self.password) or 'honeypot'  
 
-        self.options = kwargs.get('options', '') or (hasattr(self, 'options') and self.options) or getenv('HONEYPOTS_OPTIONS', '') or ''
-        disable_logger(1, tlog)
+        self.options = kwargs.get('options', '') or (hasattr(self, 'options') and self.options) or getenv('HONEYPOTS_OPTIONS', '') or ''    # default options
+        
+        disable_logger(1, tlog)     # 禁用 twisted 的日志
 
     def http_server_main(self):
-        _q_s = self
+        _q_s = self 
 
         class MainResource(Resource):
             isLeaf = True
-
-            home_file = b'''
+            # 陷阱页面
+            trap_page = b'''
             <!DOCTYPE html>
             <html>
             <head>
@@ -98,8 +103,8 @@ class QHTTPServer():
             </div>
             </body>
             </html>'''
-
-            login_file = b'''      
+            # 登录页面
+            login_page = b'''      
             <!DOCTYPE html>
             <html>
             <head>
@@ -159,44 +164,60 @@ class QHTTPServer():
             </body>
             </html>'''
 
-            def check_bytes(self, string):
+            def check_bytes(self, string):  # 检查是否是 bytes 类型
                 if isinstance(string, bytes):
                     return string.decode()
                 else:
                     return str(string)
 
             def render(self, request):
+                """
+                Renders the HTTP request and returns the appropriate response.
 
+                Args:
+                    request (twisted.web.http.Request): The HTTP request object.
+
+                Returns:
+                    str: The response content.
+                """
                 headers = {}
                 client_ip = ""
 
-                with suppress(Exception):
-                    def check_bytes(string):
-                        if isinstance(string, bytes):
-                            return string.decode()
-                        else:
-                            return str(string)
+                def check_bytes(string):
+                    if isinstance(string, bytes):
+                        return string.decode()
+                    else:
+                        return str(string)
+                
+                # 获取请求头
+                try:
                     for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
                         headers.update({check_bytes(item): ','.join(map(check_bytes, value))})
                     headers.update({'method': check_bytes(request.method)})
                     headers.update({'uri': check_bytes(request.uri)})
+                except Exception as e:
+                    print('error: ', e)
 
                 if 'fix_get_client_ip' in _q_s.options:
-                    with suppress(Exception):
+                    try:
                         raw_headers = dict(request.requestHeaders.getAllRawHeaders())
                         if b'X-Forwarded-For' in raw_headers:
                             client_ip = check_bytes(raw_headers[b'X-Forwarded-For'][0])
                         elif b'X-Real-IP' in raw_headers:
                             client_ip = check_bytes(raw_headers[b'X-Real-IP'][0])
+                    except Exception as e:
+                        print('error: ', e)
 
                 if client_ip == "":
                     client_ip = request.getClientAddress().host
 
-                with suppress(Exception):
-                    if "capture_commands" in _q_s.options:
-                        _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port, 'data': headers})
-                    else:
-                        _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
+                # try:
+                    # if "capture_commands" in _q_s.options:
+                _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port, 'data': headers})
+                    # else:
+                        # _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'src_ip': client_ip, 'src_port': request.getClientAddress().port, 'dest_ip': _q_s.ip, 'dest_port': _q_s.port})
+                # except Exception as e:
+                    # print('error: ', e)
 
                 if _q_s.mocking_server != '':
                     request.responseHeaders.removeHeader('Server')
@@ -209,10 +230,10 @@ class QHTTPServer():
                     if request.uri == b'/login.html':
                         if _q_s.username != '' and _q_s.password != '':
                             request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                            return self.login_file
+                            return self.login_page
 
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                    return self.login_file
+                    return self.login_page
 
                 elif request.method == b'POST':
                     self.headers = request.getAllHeaders()
@@ -231,15 +252,14 @@ class QHTTPServer():
 
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     if status == 'failed':
-                        return self.login_file
-                    return self.home_file
+                        return self.login_page
+                    return self.trap_page
                 else:
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
-                    return self.home_file
+                    return self.trap_page
 
-        print('Listening on port', self.port)
         reactor.listenTCP(self.port, Site(MainResource()))
-        print('reactor.run()')
+        print('honypot is running')
         reactor.run()
 
     def run_server(self, process=False, auto=False):
@@ -288,7 +308,11 @@ if __name__ == '__main__':
     if parsed.custom:
         qhttpserver = QHTTPServer(ip=parsed.ip, port=parsed.port, username=parsed.username, password=parsed.password, options=parsed.options, config=parsed.config)
         qhttpserver.run_server()
+        qhttpserver.close_port()
+        qhttpserver.kill_server()
         # qhttpserver.http_server_main()
     else:
         qhttpserver = QHTTPServer()
         qhttpserver.http_server_main()
+        qhttpserver.close_port()
+        qhttpserver.kill_server()
