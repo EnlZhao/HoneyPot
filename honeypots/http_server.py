@@ -17,8 +17,6 @@ disable_warnings()
 
 class HoneyHTTP():
     def __init__(self, **kwargs):
-        self.key = path.join(gettempdir(), next(_get_candidate_names()))    # 生成一个随机的 key
-        self.cert = path.join(gettempdir(), next(_get_candidate_names()))   # 生成一个随机的 certificate
         self.mocking_server = choice(['Apache', 'nginx', 'Microsoft-IIS/7.5', 'Microsoft-HTTPAPI/2.0', 
                                       'Apache/2.2.15', 'SmartXFilter', 'Microsoft-IIS/8.5', 'Apache/2.4.6', 
                                       'Apache-Coyote/1.1', 'Microsoft-IIS/7.0', 'Apache/2.4.18', 'AkamaiGHost', 
@@ -45,7 +43,7 @@ class HoneyHTTP():
 
         print(f'ip: {self.ip}; port: {self.port}; username: {self.username}; password: {self.password}')
         
-        disable_logger(True, tlog)    
+        # disable_logger(True, tlog)    
 
     def http_server(self):
         _q_s = self 
@@ -253,9 +251,7 @@ class HoneyHTTP():
                     return self.trap_page
 
         try:
-            print('honypot is starting')
             reactor.listenTCP(self.port, Site(MainResource()))
-            print('honypot is running')
             reactor.run()
         except Exception as e:
             print(e)
