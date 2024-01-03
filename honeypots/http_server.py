@@ -1,5 +1,5 @@
-from warnings import filterwarnings
-filterwarnings(action='ignore', module='.*OpenSSL.*')
+# from warnings import filterwarnings
+# filterwarnings(action='ignore', module='.*OpenSSL.*')
 
 from cgi import FieldStorage
 from requests.packages.urllib3 import disable_warnings
@@ -245,7 +245,6 @@ class HoneyHTTP():
             reactor.run()
         except Exception as e:
             print(e)
-
 
 if __name__ == '__main__':
     parsed = server_arguments()
