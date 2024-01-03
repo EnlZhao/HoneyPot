@@ -7,6 +7,7 @@ from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.python import log as tlog
+from twisted.web.http import Request
 from random import choice
 from utils import server_arguments, setup_logger, disable_logger, set_local_vars
 from uuid import uuid4
@@ -41,7 +42,7 @@ class HoneyHTTP():
         disable_logger(True, tlog)    
 
     def http_server(self):
-        _q_s = self 
+        my_server = self 
 
         class MainResource(Resource):
             isLeaf = True
@@ -181,7 +182,11 @@ class HoneyHTTP():
                 
                 # 获取请求头
                 for item, value in dict(request.requestHeaders.getAllRawHeaders()).items():
-                    headers.update({normalize(item): ','.join(map(normalize, value))})
+                    # 使用 ',' 将 value 连接起来
+                    value = ','.join(map(normalize, value))
+                    # 将 item 和 value 添加到 headers 中
+                    headers.update({normalize(item): value})
+                # 获取请求方法和请求 uri
                 headers.update({'method': normalize(request.method)})
                 headers.update({'uri': normalize(request.uri)})
 
@@ -198,18 +203,18 @@ class HoneyHTTP():
                 else:
                     client_ip = request.getClientAddress().host
 
-                _q_s.logs.info({'server': 'http_server', 'action': 'connection', 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': _q_s.ip, 'server_port': _q_s.port, 'data': headers})
+                my_server.logs.info({'server': 'http', 'action': 'connection', 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port, 'data': headers})
 
-                if _q_s.mocking_server != '':
+                if my_server.mocking_server != '':
                     request.responseHeaders.removeHeader('Server')
-                    request.responseHeaders.addRawHeader('Server', _q_s.mocking_server)
+                    request.responseHeaders.addRawHeader('Server', my_server.mocking_server)
 
                 if request.method == b'GET' or request.method == b'POST':
-                    _q_s.logs.info({'server': 'http_server', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': _q_s.ip, 'server_port': _q_s.port})
+                    my_server.logs.info({'server': 'http_server', 'action': request.method.decode(), 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
                 if request.method == b'GET':
                     if request.uri == b'/login.html':
-                        if _q_s.username != '' and _q_s.password != '':
+                        if my_server.username != '' and my_server.password != '':
                             request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                             return self.login_page
 
@@ -219,17 +224,17 @@ class HoneyHTTP():
                 elif request.method == b'POST':
                     self.headers = request.getAllHeaders()
                     if request.uri == b'/login.html' or b'/':
-                        if _q_s.username != '' and _q_s.password != '':
+                        if my_server.username != '' and my_server.password != '':
                             form = FieldStorage(fp=request.content, headers=self.headers, environ={'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': self.headers[b'content-type'], })
                             if 'username' in form and 'password' in form:
                                 username = self.normalize(form['username'].value)
                                 password = self.normalize(form['password'].value)
                                 status = 'failed'
-                                if username == _q_s.username and password == _q_s.password:
-                                    username = _q_s.username
-                                    password = _q_s.password
+                                if username == my_server.username and password == my_server.password:
+                                    username = my_server.username
+                                    password = my_server.password
                                     status = 'success'
-                                _q_s.logs.info({'server': 'http_server', 'action': 'login', 'status': status, 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'username': username, 'password': password, 'server_ip': _q_s.ip, 'server_port': _q_s.port})
+                                my_server.logs.info({'server': 'http_server', 'action': 'login', 'status': status, 'attack_ip': client_ip, 'attack_port': request.getClientAddress().port, 'username': username, 'password': password, 'server_ip': my_server.ip, 'server_port': my_server.port})
 
                     request.responseHeaders.addRawHeader('Content-Type', 'text/html; charset=utf-8')
                     if status == 'failed':
