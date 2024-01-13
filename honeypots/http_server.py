@@ -1,5 +1,6 @@
-# from warnings import filterwarnings
-# filterwarnings(action='ignore', module='.*OpenSSL.*')
+from warnings import filterwarnings
+filterwarnings(action='ignore', module='.*OpenSSL.*')
+
 from cgi import FieldStorage
 from requests.packages.urllib3 import disable_warnings
 from twisted.internet import reactor
