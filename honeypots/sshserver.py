@@ -27,7 +27,6 @@ class HoneySSH():
         self.config = kwargs.get('config', '')
 
         if self.config:
-            print(f'config: {self.config}')
             self.logs = setup_logger(__class__.__name__, self.uuid, self.config) # 为当前类创建一个日志记录器
             set_local_vars(self, self.config) # 为当前类设置本地变量
         else:
