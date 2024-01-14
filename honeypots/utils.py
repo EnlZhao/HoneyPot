@@ -212,6 +212,7 @@ def server_arguments():
     _server_parsergroupdeq.add_argument('--port', type=int, help='Change port', required=False, metavar='')
     _server_parsergroupdeq.add_argument('--username', type=str, help='Change username', required=False, metavar='')
     _server_parsergroupdeq.add_argument('--password', type=str, help='Change password', required=False, metavar='')
+    _server_parsergroupdeq.add_argument('--options', type=str, help='Extra options', metavar='', default='')
     _server_parsergroupdef = _server_parser.add_argument_group('Initialize Loging')
     _server_parsergroupdef.add_argument('--config', type=str, help='config file for logs and database', required=False, default='')
     return _server_parser.parse_args()
