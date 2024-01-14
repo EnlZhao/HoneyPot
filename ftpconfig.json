@@ -1,0 +1,15 @@
+{
+  "logs": "file, terminal",
+  "logs_location": "./log/",
+  "honeypots": {
+      "ftp": {
+          "port": 21,
+          "ip": "127.0.0.1",
+          "username": "ssn",
+          "password": "nzh",
+          "log_file_name": "ftp.log",
+          "max_bytes": 10000,
+          "backup_count": 10
+      }
+  }
+}
