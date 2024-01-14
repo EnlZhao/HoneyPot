@@ -10,6 +10,11 @@ args=("$@")
 command="${args[0]}"
 exe_command=""
 
+if [[ $command == "-h" || $command == "--help" ]]; then
+    usageHint
+    exit 0
+fi
+
 if [[ $command == "http_server" || $command == "sshserver" || $command == "ftp_server" ]]; then
     exe_command="python3 ./honeypots/$command.py"
     for ((i=1; i<${#args[@]}; i++)); do
@@ -39,6 +44,14 @@ if [[ $command == "http_server" || $command == "sshserver" || $command == "ftp_s
             --config=*)
                 config="${arg#*=}"
                 exe_command="$exe_command --config=\"$config\""
+                ;;
+            --help)
+                usageHint
+                exit 0
+                ;;
+            -h)
+                usageHint
+                exit 0
                 ;;
             *)
                 echo "未知参数: $arg"
