@@ -10,6 +10,16 @@ Python 3.8.18
 > pip3 install -r requirements.txt
 ```
 
+## Shell Usage
+
+- execute following command with `runHoneypots.sh`
+
+```
+./runHoneypots.sh <honeypot_name> [options]
+
+# Option: <--ip=""> <--port=""> <--username=""> <--password=""> <--options=""> <--config="">
+```
+
 ## Http Server
 
 - A simple http server that can be used as a honeypot
