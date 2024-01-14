@@ -4,10 +4,7 @@ import sys
 from warnings import filterwarnings
 filterwarnings(action='ignore', module='.*requests.*')
 
-# from psutil import process_iter
-# from signal import SIGTERM
 from argparse import ArgumentParser
-# from socket import socket, AF_INET, SOCK_STREAM
 from json import JSONEncoder, dumps, load
 from logging import Handler, Formatter, DEBUG, getLogger
 from sys import stdout
@@ -15,12 +12,7 @@ from datetime import datetime
 from logging.handlers import RotatingFileHandler, SysLogHandler
 from tempfile import _get_candidate_names, gettempdir
 from os import makedirs, path, scandir, devnull
-# from psycopg2 import sql
-# from psycopg2 import connect as psycopg2_connect
-# from time import sleep
 from collections.abc import Mapping
-# from urllib.parse import urlparse
-# from sqlite3 import connect as sqlite3_connect
 
 
 old_stderr = sys.stderr
